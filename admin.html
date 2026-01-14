@@ -4,8 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin – Mali fudbal</title>
+
   <style>
-    body{font-family:system-ui,Segoe UI,Arial; margin:0; background:#f6f7fb;}
+    body{font-family:system-ui,Segoe UI,Arial;margin:0;background:#f6f7fb}
     .wrap{max-width:900px;margin:0 auto;padding:16px}
     .card{background:#fff;border:1px solid #e7e7ee;border-radius:14px;padding:14px;margin:12px 0}
     input,select,button{padding:10px;border-radius:10px;border:1px solid #ddd;width:100%;font-size:16px}
@@ -14,8 +15,8 @@
     .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
     .small{font-size:13px;color:#666}
-    .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-    .pill{padding:6px 10px;border-radius:999px;background:#eef; font-size:12px}
+    .top{display:flex;justify-content:space-between;align-items:center}
+    .pill{padding:6px 10px;border-radius:999px;background:#eef;font-size:12px}
     table{width:100%;border-collapse:collapse}
     th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
     .muted{color:#777}
@@ -23,238 +24,185 @@
     .err{color:#b00020;font-weight:600}
   </style>
 </head>
+
 <body>
 <div class="wrap">
+
   <div class="top">
-    <h2 style="margin:10px 0">Admin – Rezultati</h2>
+    <h2>Admin – Rezultati</h2>
     <div id="statusPill" class="pill">Nisi ulogovan</div>
   </div>
 
-  <div class="card" id="loginCard">
-    <h3 style="margin:0 0 10px">Login</h3>
+  <!-- LOGIN -->
+  <div class="card">
+    <h3>Login</h3>
     <div class="row">
-      <div>
-        <label class="small">Email</label>
-        <input id="email" type="email" placeholder="tvoj@email.com" />
-      </div>
-      <div>
-        <label class="small">Password</label>
-        <input id="password" type="password" placeholder="••••••••" />
-      </div>
+      <input id="email" type="email" placeholder="email" />
+      <input id="password" type="password" placeholder="password" />
     </div>
-    <div style="margin-top:10px" class="row">
+    <div class="row" style="margin-top:10px">
       <button id="btnLogin">Uloguj se</button>
       <button id="btnLogout" class="secondary">Logout</button>
     </div>
-    <div id="msg" style="margin-top:10px" class="small"></div>
+    <div id="msg" class="small" style="margin-top:8px"></div>
   </div>
 
+  <!-- ADD MATCH -->
   <div class="card" id="addCard" style="display:none">
-    <h3 style="margin:0 0 10px">Dodaj utakmicu / rezultat</h3>
+    <h3>Dodaj utakmicu</h3>
 
     <div class="row3">
-      <div>
-        <label class="small">Godište</label>
-        <input id="godiste" placeholder="2016" />
-      </div>
-      <div>
-        <label class="small">Grupa</label>
-        <input id="grupa" placeholder="A" />
-      </div>
-      <div>
-        <label class="small">Faza</label>
-        <select id="faza">
-          <option value="grupa">grupa</option>
-          <option value="cetvrtfinale">četvrtfinale</option>
-          <option value="polufinale">polufinale</option>
-          <option value="finale">finale</option>
-        </select>
-      </div>
+      <input id="godiste" placeholder="2016">
+      <input id="grupa" placeholder="A">
+      <select id="faza">
+        <option value="grupa">grupa</option>
+        <option value="cetvrtfinale">četvrtfinale</option>
+        <option value="polufinale">polufinale</option>
+        <option value="finale">finale</option>
+      </select>
     </div>
 
     <div class="row" style="margin-top:10px">
-      <div>
-        <label class="small">Domaćin</label>
-        <input id="domacin" placeholder="Dadeks" />
-      </div>
-      <div>
-        <label class="small">Gost</label>
-        <input id="gost" placeholder="Budućnost" />
-      </div>
+      <input id="domacin" placeholder="Domaćin">
+      <input id="gost" placeholder="Gost">
     </div>
 
     <div class="row3" style="margin-top:10px">
-      <div>
-        <label class="small">Gol domaćin</label>
-        <input id="gol_domacin" type="number" min="0" placeholder="0" />
-      </div>
-      <div>
-        <label class="small">Gol gost</label>
-        <input id="gol_gost" type="number" min="0" placeholder="0" />
-      </div>
-      <div>
-        <label class="small">Status</label>
-        <select id="status">
-          <option value="ceka">čeka</option>
-          <option value="uzivo">uživo</option>
-          <option value="gotovo">gotovo</option>
-        </select>
-      </div>
+      <input id="gol_domacin" type="number" min="0" placeholder="0">
+      <input id="gol_gost" type="number" min="0" placeholder="0">
+      <select id="status">
+        <option value="ceka">čeka</option>
+        <option value="uzivo">uživo</option>
+        <option value="gotovo">gotovo</option>
+      </select>
     </div>
 
-    <button id="btnAdd" style="margin-top:12px">Sačuvaj</button>
-    <div class="small muted" style="margin-top:8px">
-      * Ovo radi samo kad si ulogovan (INSERT policy).
-    </div>
+    <button id="btnAdd" style="margin-top:10px">Sačuvaj</button>
   </div>
 
+  <!-- TABLE -->
   <div class="card">
-    <div class="top">
-      <h3 style="margin:0">Utakmice</h3>
-      <div class="small muted">klikni “Sačuvaj” pored reda za izmjenu (UPDATE)</div>
-    </div>
-    <div style="overflow:auto;margin-top:10px">
-      <table>
-        <thead>
-          <tr>
-            <th>Godište</th><th>Grupa</th><th>Faza</th><th>Meč</th><th>Rezultat</th><th>Status</th><th></th>
-          </tr>
-        </thead>
-        <tbody id="tbody">
-          <tr><td colspan="7" class="muted">Učitavam…</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <h3>Utakmice</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Godište</th><th>Grupa</th><th>Faza</th>
+          <th>Meč</th><th>Rezultat</th><th>Status</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="7" class="muted">Učitavam…</td></tr>
+      </tbody>
+    </table>
   </div>
 
-  <div class="small muted" style="text-align:center;margin:18px 0">
-    Tip: na telefonu uključi “Add to Home Screen” za brzi admin.
-  </div>
 </div>
 
+<!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // 1) OVDJE UBACI SVOJE PODATKE:
-  const SUPABASE_URL = "PASTE_SUPABASE_URL";
-  const SUPABASE_ANON_KEY = "PASTE_SUPABASE_ANON_KEY";
+/* =====================================================
+   OVDJE UBACI SVOJE PODATKE IZ SUPABASE → Settings → API
+   ===================================================== */
+const SUPABASE_URL = "OVDJE_IDE_TVOJ_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "OVDJE_IDE_TVOJ_ANON_KEY";
+/* ===================================================== */
 
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const el = id => document.getElementById(id);
+const msg = (t, ok=true) => el("msg").innerHTML = ok ? `<span class="ok">${t}</span>` : `<span class="err">${t}</span>`;
 
-  const el = (id) => document.getElementById(id);
-  const msg = (t, ok=true) => { el("msg").innerHTML = ok ? `<span class="ok">${t}</span>` : `<span class="err">${t}</span>`; };
+async function refreshAuth(){
+  const { data } = await sb.auth.getSession();
+  const logged = !!data.session;
+  el("addCard").style.display = logged ? "block" : "none";
+  el("statusPill").textContent = logged ? "Ulogovan ✅" : "Nisi ulogovan";
+}
 
-  async function refreshAuthUI(){
-    const { data } = await sb.auth.getSession();
-    const logged = !!data.session;
-    el("addCard").style.display = logged ? "block" : "none";
-    el("statusPill").textContent = logged ? "Ulogovan ✅" : "Nisi ulogovan";
+async function loadMatches(){
+  const { data, error } = await sb.from("matches").select("*").order("created_at",{ascending:false});
+  const tb = el("tbody");
+
+  if(error){
+    tb.innerHTML = `<tr><td colspan="7" class="err">${error.message}</td></tr>`;
+    return;
   }
 
-  async function loadMatches(){
-    const { data, error } = await sb
-      .from("matches")
-      .select("*")
-      .order("created_at", { ascending:false });
-
-    const tb = el("tbody");
-    if(error){
-      tb.innerHTML = `<tr><td colspan="7" class="err">Greška SELECT: ${error.message}</td></tr>`;
-      return;
-    }
-    if(!data || data.length === 0){
-      tb.innerHTML = `<tr><td colspan="7" class="muted">Nema unosa još.</td></tr>`;
-      return;
-    }
-
-    tb.innerHTML = data.map(r => `
-      <tr data-id="${r.id}">
-        <td>${r.godiste ?? ""}</td>
-        <td>${r.grupa ?? ""}</td>
-        <td>${r.faza ?? ""}</td>
-        <td>${r.domacin ?? ""} <span class="muted">vs</span> ${r.gost ?? ""}</td>
-        <td>
-          <input style="width:70px" type="number" min="0" value="${r.gol_domacin ?? 0}" data-k="gol_domacin">
-          :
-          <input style="width:70px" type="number" min="0" value="${r.gol_gost ?? 0}" data-k="gol_gost">
-        </td>
-        <td>
-          <select data-k="status" style="width:120px">
-            ${["ceka","uzivo","gotovo"].map(s => `<option value="${s}" ${r.status===s?"selected":""}>${s}</option>`).join("")}
-          </select>
-        </td>
-        <td><button data-action="save" style="padding:8px 10px;border-radius:10px">Sačuvaj</button></td>
-      </tr>
-    `).join("");
+  if(!data.length){
+    tb.innerHTML = `<tr><td colspan="7" class="muted">Nema utakmica</td></tr>`;
+    return;
   }
 
-  async function addMatch(){
-    const payload = {
-      godiste: el("godiste").value.trim(),
-      grupa: el("grupa").value.trim(),
-      faza: el("faza").value,
-      domacin: el("domacin").value.trim(),
-      gost: el("gost").value.trim(),
-      gol_domacin: el("gol_domacin").value === "" ? null : Number(el("gol_domacin").value),
-      gol_gost: el("gol_gost").value === "" ? null : Number(el("gol_gost").value),
-      status: el("status").value
-    };
+  tb.innerHTML = data.map(r=>`
+    <tr data-id="${r.id}">
+      <td>${r.godiste}</td>
+      <td>${r.grupa}</td>
+      <td>${r.faza}</td>
+      <td>${r.domacin} vs ${r.gost}</td>
+      <td>
+        <input type="number" value="${r.gol_domacin??0}" data-k="gol_domacin" style="width:60px"> :
+        <input type="number" value="${r.gol_gost??0}" data-k="gol_gost" style="width:60px">
+      </td>
+      <td>
+        <select data-k="status">
+          ${["ceka","uzivo","gotovo"].map(s=>`<option ${r.status===s?"selected":""}>${s}</option>`).join("")}
+        </select>
+      </td>
+      <td><button data-save>Sačuvaj</button></td>
+    </tr>
+  `).join("");
+}
 
-    const { error } = await sb.from("matches").insert(payload);
-    if(error){ msg("INSERT greška: " + error.message, false); return; }
-
-    msg("Sačuvano ✅");
-    ["domacin","gost","gol_domacin","gol_gost"].forEach(x => el(x).value = "");
-    await loadMatches();
-  }
-
-  async function saveRow(tr){
-    const id = tr.getAttribute("data-id");
-    const gol_domacin = Number(tr.querySelector('[data-k="gol_domacin"]').value);
-    const gol_gost = Number(tr.querySelector('[data-k="gol_gost"]').value);
-    const status = tr.querySelector('[data-k="status"]').value;
-
-    const { error } = await sb
-      .from("matches")
-      .update({ gol_domacin, gol_gost, status })
-      .eq("id", id);
-
-    if(error){ msg("UPDATE greška: " + error.message, false); return; }
-    msg("Update ✅");
-  }
-
-  // events
-  el("btnLogin").addEventListener("click", async () => {
-    const email = el("email").value.trim();
-    const password = el("password").value;
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    if(error){ msg("Login greška: " + error.message, false); return; }
-    msg("Ulogovan ✅");
-    await refreshAuthUI();
+async function addMatch(){
+  const { error } = await sb.from("matches").insert({
+    godiste: el("godiste").value,
+    grupa: el("grupa").value,
+    faza: el("faza").value,
+    domacin: el("domacin").value,
+    gost: el("gost").value,
+    gol_domacin: Number(el("gol_domacin").value),
+    gol_gost: Number(el("gol_gost").value),
+    status: el("status").value
   });
 
-  el("btnLogout").addEventListener("click", async () => {
-    await sb.auth.signOut();
-    msg("Izlogovan.");
-    await refreshAuthUI();
-  });
-
-  el("btnAdd").addEventListener("click", addMatch);
-
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest('button[data-action="save"]');
-    if(!btn) return;
-    const tr = btn.closest("tr");
-    saveRow(tr);
-  });
-
-  // realtime refresh (kad god se nešto promijeni)
-  sb.channel("matches-realtime")
-    .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => loadMatches())
-    .subscribe();
-
-  // init
-  refreshAuthUI();
+  if(error){ msg(error.message,false); return; }
+  msg("Sačuvano ✅");
   loadMatches();
+}
+
+el("btnLogin").onclick = async ()=>{
+  const { error } = await sb.auth.signInWithPassword({
+    email: el("email").value,
+    password: el("password").value
+  });
+  if(error){ msg(error.message,false); return; }
+  msg("Ulogovan ✅");
+  refreshAuth();
+};
+
+el("btnLogout").onclick = async ()=>{
+  await sb.auth.signOut();
+  refreshAuth();
+};
+
+el("btnAdd").onclick = addMatch;
+
+document.addEventListener("click", async e=>{
+  if(!e.target.hasAttribute("data-save")) return;
+  const tr = e.target.closest("tr");
+  const id = tr.dataset.id;
+  const payload = {};
+  tr.querySelectorAll("[data-k]").forEach(i=>payload[i.dataset.k]=Number(i.value)||i.value);
+
+  const { error } = await sb.from("matches").update(payload).eq("id",id);
+  if(error){ msg(error.message,false); return; }
+  msg("Update ✅");
+});
+
+sb.channel("rt").on("postgres_changes",{event:"*",schema:"public",table:"matches"},loadMatches).subscribe();
+
+refreshAuth();
+loadMatches();
 </script>
 </body>
 </html>
