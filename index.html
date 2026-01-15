@@ -113,6 +113,7 @@
         <input id="globalSearch" placeholder="Pretraži tim (npr. Dadeks) → vidi raspored, teren i vrijeme" />
         <button class="btn" id="btnClearSearch" style="flex:0 0 auto">✖ Obriši</button>
       </div>
+
       <div class="tableWrap" style="margin-top:12px">
         <table>
           <thead>
@@ -249,6 +250,23 @@
     let ALL = [];
     let activeGodiste = "2016"; // default
 
+    // ---------------- URL helpers ----------------
+    function getParams(){
+      return new URLSearchParams(location.search);
+    }
+    function setParam(key, val){
+      const url = new URL(location.href);
+      if(val === null || val === undefined || String(val).trim()==="") url.searchParams.delete(key);
+      else url.searchParams.set(key, val);
+      history.replaceState({}, "", url.toString());
+    }
+    function normalize(s){
+      return (s||"")
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+        .trim();
+    }
+
     function setConn(state){
       const dot = el("connDot");
       const text = el("connText");
@@ -279,7 +297,6 @@
       const dd = String(d.getDate()).padStart(2,"0");
       return `${yyyy}-${mm}-${dd}`;
     }
-
     function dayLabel(key){
       if(!key) return "";
       const d = new Date(key + "T00:00:00");
@@ -287,14 +304,7 @@
       return d.toLocaleDateString("sr-ME",{year:"numeric",month:"2-digit",day:"2-digit"});
     }
 
-    function normalize(s){
-      return (s||"")
-        .toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-        .trim();
-    }
-
-    // ---------- Generacije bar ----------
+    // ---------------- Generacije bar ----------------
     function buildGenBar(){
       const bar = el("genBar");
       bar.innerHTML = GODISTA.map(g => `
@@ -306,6 +316,7 @@
       bar.querySelectorAll(".chip").forEach(b=>{
         b.addEventListener("click", ()=>{
           activeGodiste = b.getAttribute("data-g");
+          setParam("godiste", activeGodiste);
           buildGenBar();
           fillSelectsFromActive();
           renderAll();
@@ -314,7 +325,7 @@
       });
     }
 
-    // ---------- LOAD ----------
+    // ---------------- DATA LOAD ----------------
     async function load(){
       setConn("loading");
       const { data, error } = await sb
@@ -343,7 +354,7 @@
       return ALL.filter(x => String(x.godiste||"") === String(activeGodiste));
     }
 
-    // ---------- SELECT POPULATE ----------
+    // ---------------- SELECT POPULATE ----------------
     function uniq(arr){ return Array.from(new Set(arr.filter(v => v !== null && v !== undefined && String(v).trim() !== ""))); }
 
     function setOptionsKeep(selectId, values, firstLabel, mapLabelFn){
@@ -380,7 +391,7 @@
       renderElim();
     }
 
-    // ---------- LIVE ----------
+    // ---------------- LIVE ----------------
     function renderLive(){
       const grp = el("fGrupa").value.trim();
       const faza = el("fFaza").value.trim();
@@ -422,7 +433,7 @@
       `).join("");
     }
 
-    // ---------- RASPORED (po terenu) ----------
+    // ---------------- RASPORED ----------------
     function renderRaspored(){
       const teren = el("rTeren").value.trim();
       const dan = el("rDan").value.trim();
@@ -466,7 +477,7 @@
       tb.innerHTML = html;
     }
 
-    // ---------- GRUPE ----------
+    // ---------------- GRUPE ----------------
     function computeStandings(matches){
       const teams = {};
       function ensure(name){
@@ -556,7 +567,7 @@
       }).join("");
     }
 
-    // ---------- ELIMINACIJE ----------
+    // ---------------- ELIMINACIJE ----------------
     function matchMini(r){
       return `
         <div class="matchCard">
@@ -579,10 +590,34 @@
       el("fWrap").innerHTML = fin.length ? fin.map(matchMini).join("") : `<div class="muted">Nema finala.</div>`;
     }
 
-    // ---------- GLOBAL SEARCH ----------
+    // ---------------- GLOBAL SEARCH + SHARE ----------------
+    function shareLinkFor(query){
+      const url = new URL(location.href);
+      url.searchParams.set("godiste", activeGodiste);
+      url.searchParams.set("tab", "raspored");
+      url.searchParams.set("q", query);
+      return url.toString();
+    }
+
+    function doShare(query){
+      const link = shareLinkFor(query);
+      if(navigator.share){
+        navigator.share({ title: "Mali fudbal", text: `Raspored za: ${query} (godište ${activeGodiste})`, url: link }).catch(()=>{});
+      }else{
+        navigator.clipboard?.writeText(link).then(()=>{
+          alert("Link kopiran ✅\n" + link);
+        }).catch(()=>{
+          prompt("Kopiraj link:", link);
+        });
+      }
+    }
+
     function renderGlobalSearch(){
-      const q = normalize(el("globalSearch").value);
+      const qRaw = el("globalSearch").value;
+      const q = normalize(qRaw);
       const tb = el("tbodySearch");
+
+      setParam("q", qRaw ? qRaw : "");
 
       if(!q){
         tb.innerHTML = `<tr><td colspan="8" class="muted">Ukucaj tim gore (npr. Dadeks) da vidiš sve utakmice tog tima.</td></tr>`;
@@ -602,11 +637,21 @@
       list.sort((a,b)=> new Date(a.vreme||0) - new Date(b.vreme||0));
 
       if(!list.length){
-        tb.innerHTML = `<tr><td colspan="8" class="muted">Nema utakmica za “${el("globalSearch").value}” u godištu ${activeGodiste}.</td></tr>`;
+        tb.innerHTML = `<tr><td colspan="8" class="muted">Nema utakmica za “${qRaw}” u godištu ${activeGodiste}.</td></tr>`;
         return;
       }
 
-      tb.innerHTML = list.map(r=>`
+      const safe = (s)=>String(s).replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      const qSafe = safe(qRaw);
+
+      tb.innerHTML = `
+        <tr class="groupRow">
+          <td colspan="8">
+            🔎 Rezultati za: <b>${qSafe}</b>
+            <button class="btn" style="margin-left:10px;padding:8px 10px;border-radius:12px" id="btnShareInline">🔗 Podijeli</button>
+          </td>
+        </tr>
+      ` + list.map(r=>`
         <tr>
           <td><b>${r.godiste ?? ""}</b></td>
           <td>${fmtTime(r.vreme)}</td>
@@ -618,9 +663,12 @@
           <td>${tagStatus(r.status)}</td>
         </tr>
       `).join("");
+
+      const btn = document.getElementById("btnShareInline");
+      btn?.addEventListener("click", ()=>doShare(qRaw));
     }
 
-    // ---------- TABS ----------
+    // ---------------- TABS (with URL param) ----------------
     function showTab(name){
       ["live","raspored","grupe","elim"].forEach(t=>{
         el("tab-"+t).style.display = (t===name) ? "block" : "none";
@@ -628,12 +676,14 @@
       document.querySelectorAll(".tab").forEach(b=>{
         b.classList.toggle("active", b.getAttribute("data-tab")===name);
       });
+      setParam("tab", name);
     }
+
     document.querySelectorAll(".tab").forEach(b=>{
       b.addEventListener("click", ()=> showTab(b.getAttribute("data-tab")));
     });
 
-    // ---------- LISTENERS ----------
+    // ---------------- listeners ----------------
     ["fGrupa","fFaza","fStatus","fSearch"].forEach(id=>{
       el(id).addEventListener("input", renderLive);
       el(id).addEventListener("change", renderLive);
@@ -653,12 +703,11 @@
       renderGlobalSearch();
     });
 
-    // PWA: Service Worker
+    // ---------------- PWA ----------------
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js").catch(()=>{});
     }
 
-    // PWA: Install prompt
     let deferredPrompt = null;
     const btnInstall = document.getElementById("btnInstall");
     window.addEventListener("beforeinstallprompt", (e) => {
@@ -674,15 +723,33 @@
       btnInstall.style.display = "none";
     });
 
-    // realtime
+    // ---------------- realtime ----------------
     sb.channel("matches-realtime-site")
       .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => load())
       .subscribe();
 
-    // init
+    // ---------------- init from URL ----------------
     (function init(){
-      // default godište: prvo iz liste, ali možeš promijenit
-      activeGodiste = GODISTA.includes(activeGodiste) ? activeGodiste : GODISTA[0];
+      const p = getParams();
+
+      const g = p.get("godiste");
+      if(g && GODISTA.includes(String(g))) activeGodiste = String(g);
+
+      buildGenBar();
+
+      const tab = p.get("tab");
+      if(tab && ["live","raspored","grupe","elim"].includes(tab)) {
+        showTab(tab);
+      } else {
+        showTab("live");
+      }
+
+      const q = p.get("q");
+      if(q) el("globalSearch").value = q;
+
+      // pamti i kad promijeniš godište prvi put
+      setParam("godiste", activeGodiste);
+
       load();
     })();
   </script>
