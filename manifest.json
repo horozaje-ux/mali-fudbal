@@ -1,13 +1,22 @@
 {
-  "name": "Mali fudbal",
+  "name": "Mali fudbal – Turnir Live",
   "short_name": "Mali fudbal",
-  "start_url": "./",
-  "scope": "./",
+  "description": "Live rezultati, raspored, grupe i eliminacije za turnir malog fudbala",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0b1020",
+  "background_color": "#070a14",
   "theme_color": "#0b1020",
+  "orientation": "portrait-primary",
   "icons": [
-    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
