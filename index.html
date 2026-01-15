@@ -42,15 +42,13 @@
     .dot.ok{background:var(--ok);box-shadow:0 0 0 4px rgba(39,227,138,.14)}
     .dot.bad{background:var(--bad);box-shadow:0 0 0 4px rgba(255,77,109,.14)}
     .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--glow)}
-    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
-    @media(max-width:900px){.grid{grid-template-columns:1fr}}
     .tabs{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px}
     .tab{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.05);cursor:pointer;font-size:13px}
     .tab.active{background:linear-gradient(135deg, rgba(70,120,255,.55), rgba(255,90,180,.35));border-color:rgba(255,255,255,.16)}
     .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
     select,input{
       width:100%; padding:11px 12px;border-radius:14px;border:1px solid var(--line);
-      background:rgba(0,0,0,.18_tf);color:var(--text);outline:none
+      background:rgba(0,0,0,.18);color:var(--text);outline:none
     }
     .filters>*{flex:1 1 160px}
     .small{font-size:12px;color:var(--muted)}
@@ -72,6 +70,7 @@
     .matchCard{padding:12px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}
     .matchRow{display:flex;justify-content:space-between;gap:10px;margin:6px 0}
     .footer{margin:18px 0 6px;text-align:center;color:var(--muted);font-size:12px}
+    .groupRow{background:rgba(255,255,255,.04);font-weight:800}
   </style>
 </head>
 <body>
@@ -140,7 +139,7 @@
     <!-- RASPORED -->
     <div id="tab-raspored" class="card" style="display:none;margin-top:14px">
       <div class="sectionTitle">
-        <b>Raspored (teren + vrijeme)</b>
+        <b>Raspored (grupisan po terenu)</b>
         <span class="small">sortirano po vremenu</span>
       </div>
 
@@ -210,11 +209,11 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // ✅ TVOJ SUPABASE (PUBLISHABLE / ANON KEY) — ovo ide u browser
+    // ✅ tvoje:
     const SUPABASE_URL = "https://ayakstyzqrsjvrbfwgfs.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
 
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     const el = (id)=>document.getElementById(id);
 
     let ALL = [];
@@ -226,19 +225,23 @@
       else if(state==="bad"){ dot.className="dot bad"; text.textContent="Greška"; }
       else { dot.className="dot"; text.textContent="Spajam se…"; }
     }
+
     function tagStatus(s){
       if(s==="uzivo") return `<span class="tag live">🟡 uživo</span>`;
       if(s==="gotovo") return `<span class="tag done">🟢 gotovo</span>`;
       return `<span class="tag wait">⚪ čeka</span>`;
     }
+
     function fmtTime(v){
       if(!v) return "—";
-      try{
-        const d = new Date(v);
-        if(isNaN(d)) return String(v);
-        return d.toLocaleString();
-      }catch(e){ return String(v); }
+      const d = new Date(v);
+      if(isNaN(d)) return String(v);
+      return d.toLocaleString("sr-ME", {
+        year:"numeric", month:"2-digit", day:"2-digit",
+        hour:"2-digit", minute:"2-digit"
+      });
     }
+
     function dayKey(v){
       if(!v) return "";
       const d = new Date(v);
@@ -249,10 +252,17 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
+    function dayLabel(key){
+      // key: YYYY-MM-DD
+      if(!key) return "";
+      const d = new Date(key + "T00:00:00");
+      if(isNaN(d)) return key;
+      return d.toLocaleDateString("sr-ME", { year:"numeric", month:"2-digit", day:"2-digit" });
+    }
+
     // ---------- LOAD ----------
     async function load(){
       setConn("loading");
-
       const { data, error } = await sb
         .from("matches")
         .select("*")
@@ -268,7 +278,7 @@
 
       setConn("ok");
       ALL = data || [];
-      el("lastUpdate").textContent = "Ažurirano: " + new Date().toLocaleString();
+      el("lastUpdate").textContent = "Ažurirano: " + new Date().toLocaleString("sr-ME");
 
       fillAllSelects();
       renderLive();
@@ -278,32 +288,40 @@
     }
 
     // ---------- SELECT POPULATE ----------
-    function uniq(arr){ return Array.from(new Set(arr.filter(Boolean))); }
+    function uniq(arr){ return Array.from(new Set(arr.filter(v => v !== null && v !== undefined && String(v).trim() !== ""))); }
 
-    function setOptions(selectId, values, firstLabel){
+    function setOptionsKeep(selectId, values, firstLabel, mapLabelFn){
       const sel = el(selectId);
-      sel.innerHTML = `<option value="">${firstLabel}</option>` + values.map(v=>`<option value="${v}">${v}</option>`).join("");
+      const prev = sel.value;
+      sel.innerHTML =
+        `<option value="">${firstLabel}</option>` +
+        values.map(v => {
+          const label = mapLabelFn ? mapLabelFn(v) : v;
+          return `<option value="${v}">${label}</option>`;
+        }).join("");
+      // vrati izbor ako postoji
+      if([ "", ...values.map(String) ].includes(String(prev))) sel.value = prev;
     }
 
     function fillAllSelects(){
-      const godista = uniq(ALL.map(x=>x.godiste)).sort();
-      const grupe = uniq(ALL.map(x=>x.grupa)).sort();
-      const tereni = uniq(ALL.map(x=>x.teren)).sort();
+      const godista = uniq(ALL.map(x=>x.godiste)).map(String).sort();
+      const grupe = uniq(ALL.map(x=>x.grupa)).map(String).sort();
+      const tereni = uniq(ALL.map(x=>x.teren)).map(String).sort();
       const dani = uniq(ALL.map(x=>dayKey(x.vreme))).sort();
-      const faze = uniq(ALL.map(x=>x.faza)).sort();
+      const faze = uniq(ALL.map(x=>x.faza)).map(String).sort();
 
-      setOptions("fGodiste", godista, "Sva godišta");
-      setOptions("fGrupa", grupe, "Sve grupe");
+      setOptionsKeep("fGodiste", godista, "Sva godišta");
+      setOptionsKeep("fGrupa", grupe, "Sve grupe");
 
-      setOptions("rGodiste", godista, "Sva godišta");
-      setOptions("rTeren", tereni, "Svi tereni");
-      setOptions("rDan", dani, "Svi dani");
-      setOptions("rFaza", faze, "Sve faze");
+      setOptionsKeep("rGodiste", godista, "Sva godišta");
+      setOptionsKeep("rTeren", tereni, "Svi tereni");
+      setOptionsKeep("rDan", dani, "Svi dani", (k)=>dayLabel(k));
+      setOptionsKeep("rFaza", faze, "Sve faze");
 
-      setOptions("gGodiste", godista, "Sva godišta");
-      setOptions("gGrupa", grupe, "Sve grupe");
+      setOptionsKeep("gGodiste", godista, "Sva godišta");
+      setOptionsKeep("gGrupa", grupe, "Sve grupe");
 
-      setOptions("eGodiste", godista, "Sva godišta");
+      setOptionsKeep("eGodiste", godista, "Sva godišta");
     }
 
     // ---------- LIVE ----------
@@ -325,7 +343,8 @@
           (x.gost||"").toLowerCase().includes(q) ||
           (x.faza||"").toLowerCase().includes(q) ||
           (x.grupa||"").toLowerCase().includes(q) ||
-          (x.teren||"").toLowerCase().includes(q)
+          (x.teren||"").toLowerCase().includes(q) ||
+          (x.napomena||"").toLowerCase().includes(q)
         );
       }
 
@@ -349,14 +368,14 @@
       `).join("");
     }
 
-    // ---------- RASPORED ----------
+    // ---------- RASPORED (grupisan po terenu) ----------
     function renderRaspored(){
       const teren = el("rTeren").value.trim();
       const dan = el("rDan").value.trim();
       const god = el("rGodiste").value.trim();
       const faza = el("rFaza").value.trim();
 
-      let list = [...ALL].sort((a,b)=> new Date(a.vreme||0)-new Date(b.vreme||0));
+      let list = [...ALL].sort((a,b)=> new Date(a.vreme||0) - new Date(b.vreme||0));
 
       if(teren) list = list.filter(x=>(x.teren||"")===teren);
       if(dan) list = list.filter(x=>dayKey(x.vreme)===dan);
@@ -369,17 +388,31 @@
         return;
       }
 
-      tb.innerHTML = list.map(r=>`
-        <tr>
-          <td>${fmtTime(r.vreme)}</td>
-          <td>${r.teren ?? "—"}</td>
-          <td>${r.faza ?? ""}</td>
-          <td>${r.godiste ?? ""}</td>
-          <td>${r.grupa ?? ""}</td>
-          <td><b>${r.domacin ?? ""}</b> <span class="muted">vs</span> <b>${r.gost ?? ""}</b></td>
-          <td>${tagStatus(r.status)}</td>
-        </tr>
-      `).join("");
+      // grupiši po terenu
+      const map = new Map();
+      for(const m of list){
+        const key = (m.teren || "—");
+        if(!map.has(key)) map.set(key, []);
+        map.get(key).push(m);
+      }
+
+      const keys = Array.from(map.keys()).sort((a,b)=>a.localeCompare(b));
+      let html = "";
+      for(const k of keys){
+        html += `<tr class="groupRow"><td colspan="7">🏟️ ${k}</td></tr>`;
+        html += map.get(k).map(r=>`
+          <tr>
+            <td>${fmtTime(r.vreme)}</td>
+            <td>${r.teren ?? "—"}</td>
+            <td>${r.faza ?? ""}</td>
+            <td>${r.godiste ?? ""}</td>
+            <td>${r.grupa ?? ""}</td>
+            <td><b>${r.domacin ?? ""}</b> <span class="muted">vs</span> <b>${r.gost ?? ""}</b></td>
+            <td>${tagStatus(r.status)}</td>
+          </tr>
+        `).join("");
+      }
+      tb.innerHTML = html;
     }
 
     // ---------- GRUPE (tabele) ----------
@@ -400,6 +433,7 @@
         const ga = Number(m.gol_domacin ?? 0);
         const gb = Number(m.gol_gost ?? 0);
 
+        // preskoči neodigrane bez rezultata
         if((m.status||"") !== "gotovo" && (m.gol_domacin==null || m.gol_gost==null)) continue;
 
         const A = ensure(a);
@@ -429,7 +463,6 @@
       const grpFilter = el("gGrupa").value.trim();
 
       let base = ALL.filter(x => (x.faza||"") === "grupa");
-
       if(godFilter) base = base.filter(x => String(x.godiste||"") === godFilter);
       if(grpFilter) base = base.filter(x => String(x.grupa||"") === grpFilter);
 
@@ -465,14 +498,14 @@
                   </tr>
                 </thead>
                 <tbody>
-                  ${standings.map((t,i)=>`
+                  ${standings.length ? standings.map((t,i)=>`
                     <tr>
                       <td>${i+1}</td>
                       <td><b>${t.team}</b></td>
                       <td>${t.P}</td><td>${t.W}</td><td>${t.D}</td><td>${t.L}</td>
                       <td>${t.GF}</td><td>${t.GA}</td><td>${t.GD}</td><td class="score">${t.PTS}</td>
                     </tr>
-                  `).join("") || `<tr><td colspan="10" class="muted">Nema odigranih mečeva.</td></tr>`}
+                  `).join("") : `<tr><td colspan="10" class="muted">Nema odigranih mečeva.</td></tr>`}
                 </tbody>
               </table>
             </div>
@@ -486,7 +519,7 @@
     function matchMini(r){
       return `
         <div class="matchCard">
-          <div class="small muted">${fmtTime(r.vreme)} • ${r.teren ?? "—"}</div>
+          <div class="small muted">${fmtTime(r.vreme)} • ${r.teren ?? "—"} ${r.napomena ? "• " + r.napomena : ""}</div>
           <div class="matchRow"><b>${r.domacin ?? ""}</b><span class="score">${(r.gol_domacin ?? 0)}</span></div>
           <div class="matchRow"><b>${r.gost ?? ""}</b><span class="score">${(r.gol_gost ?? 0)}</span></div>
           <div style="margin-top:6px">${tagStatus(r.status)}</div>
