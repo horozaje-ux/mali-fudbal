@@ -1,13 +1,357 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="sr">
 <head>
-  <meta charset="UTF-8">
-  <title>Mali fudbal</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mali fudbal – Live</title>
+  <meta name="description" content="Live rezultati i raspored – Mali fudbal." />
+  <meta name="theme-color" content="#0b1020" />
+  <style>
+    :root{
+      --bg:#070a14;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.10);
+      --text:#e9eefc;
+      --muted:rgba(233,238,252,.70);
+      --line:rgba(255,255,255,.10);
+      --ok:#27e38a;
+      --warn:#ffcc66;
+      --bad:#ff4d6d;
+      --glow: 0 10px 30px rgba(0,0,0,.45);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(900px 450px at 15% 15%, rgba(70,120,255,.28), transparent 60%),
+        radial-gradient(800px 400px at 85% 10%, rgba(255,90,180,.22), transparent 55%),
+        radial-gradient(900px 500px at 50% 90%, rgba(40,255,160,.12), transparent 55%),
+        linear-gradient(180deg, #050817, #070a14 55%, #050714);
+      min-height:100vh;
+    }
+
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:10px 0 18px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:10px;
+    }
+    .logo{
+      width:44px;height:44px;border-radius:14px;
+      background: linear-gradient(135deg, rgba(70,120,255,.9), rgba(255,90,180,.85));
+      box-shadow: var(--glow);
+      display:grid;place-items:center;
+      font-weight:800;
+      letter-spacing:.5px;
+    }
+    .brand h1{margin:0;font-size:18px;line-height:1.1}
+    .brand .sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+    .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    a.btn, button.btn{
+      appearance:none;border:1px solid var(--line);background:var(--card);
+      color:var(--text);text-decoration:none;
+      padding:10px 12px;border-radius:14px;
+      display:inline-flex;align-items:center;gap:8px;
+      cursor:pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,.25);
+      transition:.15s transform, .15s background, .15s border;
+      font-size:13px;
+    }
+    a.btn:hover, button.btn:hover{transform: translateY(-1px);background:var(--card2);border-color:rgba(255,255,255,.18)}
+    .btn.primary{background: linear-gradient(135deg, rgba(70,120,255,.75), rgba(255,90,180,.55)); border-color: rgba(255,255,255,.15)}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:999px;
+      background: rgba(255,255,255,.08);
+      border:1px solid var(--line);
+      font-size:12px;color:var(--muted);
+    }
+    .dot{width:8px;height:8px;border-radius:999px;background:var(--warn);box-shadow:0 0 0 4px rgba(255,204,102,.15)}
+    .dot.ok{background:var(--ok);box-shadow:0 0 0 4px rgba(39,227,138,.14)}
+    .dot.bad{background:var(--bad);box-shadow:0 0 0 4px rgba(255,77,109,.14)}
+
+    .hero{
+      display:grid;grid-template-columns:1.25fr .75fr;gap:14px;
+      align-items:stretch;
+    }
+    @media (max-width: 900px){ .hero{grid-template-columns:1fr} }
+
+    .card{
+      background: var(--card);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding:16px;
+      box-shadow: var(--glow);
+    }
+    .card h2{margin:0 0 6px;font-size:18px}
+    .card p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+    .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    @media (max-width: 520px){ .kpis{grid-template-columns:1fr} }
+    .kpi{padding:12px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}
+    .kpi .v{font-size:22px;font-weight:800;margin:2px 0}
+    .kpi .l{font-size:12px;color:var(--muted)}
+
+    .filters{
+      display:flex;gap:10px;flex-wrap:wrap;margin-top:10px
+    }
+    select, input{
+      width:100%; padding:11px 12px;
+      border-radius:14px; border:1px solid var(--line);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      outline:none;
+    }
+    .filters > *{flex:1 1 160px}
+
+    .sectionTitle{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      margin:16px 2px 10px;
+    }
+    .sectionTitle h3{margin:0;font-size:15px}
+    .small{font-size:12px;color:var(--muted)}
+
+    table{width:100%;border-collapse:collapse;min-width:720px}
+    th,td{padding:12px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:13px}
+    th{color:rgba(233,238,252,.75);font-weight:700}
+    .tableWrap{overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.10)}
+    .tag{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      font-size:12px;color:rgba(233,238,252,.85);
+      white-space:nowrap;
+    }
+    .tag.live{border-color: rgba(255,204,102,.35); background: rgba(255,204,102,.12)}
+    .tag.done{border-color: rgba(39,227,138,.35); background: rgba(39,227,138,.12)}
+    .tag.wait{border-color: rgba(233,238,252,.20); background: rgba(233,238,252,.07)}
+    .score{font-weight:800;font-size:14px}
+    .muted{color:var(--muted)}
+    .footer{margin:18px 0 6px;text-align:center;color:var(--muted);font-size:12px}
+  </style>
 </head>
-<body style="font-family:system-ui;padding:40px">
-  <h1>Sajt radi ✅</h1>
-  <p>GitHub Pages je uspješno podignut.</p>
-  <p><a href="admin.html">➡️ Idi na admin</a></p>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">MF</div>
+        <div>
+          <h1>Mali fudbal – Live</h1>
+          <div class="sub">Rezultati u real-time • GitHub Pages + Supabase</div>
+        </div>
+      </div>
+
+      <div class="btns">
+        <span class="pill" id="connPill"><span class="dot" id="connDot"></span><span id="connText">Spajam se…</span></span>
+        <a class="btn primary" href="./admin.html">⚙️ Admin</a>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="card">
+        <h2>Brzi pregled</h2>
+        <p>Ovdje se prikazuju najnovije utakmice i statusi (čeka / uživo / gotovo). Filteri rade odmah.</p>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="l">Ukupno utakmica</div>
+            <div class="v" id="kpiAll">—</div>
+          </div>
+          <div class="kpi">
+            <div class="l">Uživo</div>
+            <div class="v" id="kpiLive">—</div>
+          </div>
+          <div class="kpi">
+            <div class="l">Gotovo</div>
+            <div class="v" id="kpiDone">—</div>
+          </div>
+        </div>
+
+        <div class="filters">
+          <select id="fGodiste">
+            <option value="">Sva godišta</option>
+          </select>
+
+          <select id="fGrupa">
+            <option value="">Sve grupe</option>
+          </select>
+
+          <select id="fStatus">
+            <option value="">Svi statusi</option>
+            <option value="ceka">čeka</option>
+            <option value="uzivo">uživo</option>
+            <option value="gotovo">gotovo</option>
+          </select>
+
+          <input id="fSearch" placeholder="Pretraga (npr. Dadeks, Budućnost…)" />
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Linkovi</h2>
+        <p class="muted">Brzi ulaz, a na telefonu ubaci na početni ekran.</p>
+        <div style="display:grid;gap:10px;margin-top:12px">
+          <a class="btn" href="./admin.html">➡️ Idi na Admin</a>
+          <button class="btn" id="btnRefresh">🔄 Osvježi</button>
+          <button class="btn" id="btnA2HS">📲 Add to Home Screen (tip)</button>
+        </div>
+        <div class="footer" style="text-align:left;margin-top:12px">
+          Tip: na telefonu u browseru → Share → “Add to Home Screen”.
+        </div>
+      </div>
+    </div>
+
+    <div class="sectionTitle">
+      <h3>Utakmice</h3>
+      <div class="small" id="lastUpdate">—</div>
+    </div>
+
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Godište</th>
+            <th>Grupa</th>
+            <th>Faza</th>
+            <th>Meč</th>
+            <th>Rezultat</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="6" class="muted">Učitavam…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">© Mali fudbal • Live scoreboard</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ✅ OVDJE UBACI SVOJE PODATKE
+    const SUPABASE_URL = "https://ayakstyzqrsjvrbfwgfs.supabase.co";
+    const SUPABASE_ANON_KEY = "PASTE_SB_PUBLISHABLE_KEY_HERE"; // npr: sb_publishable_...
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const el = (id) => document.getElementById(id);
+
+    let ALL = [];
+
+    function setConn(state){
+      const dot = el("connDot");
+      const text = el("connText");
+      if(state === "ok"){ dot.className = "dot ok"; text.textContent = "Online"; }
+      else if(state === "bad"){ dot.className = "dot bad"; text.textContent = "Greška"; }
+      else { dot.className = "dot"; text.textContent = "Spajam se…"; }
+    }
+
+    function tagStatus(s){
+      if(s === "uzivo") return `<span class="tag live">🟡 uživo</span>`;
+      if(s === "gotovo") return `<span class="tag done">🟢 gotovo</span>`;
+      return `<span class="tag wait">⚪ čeka</span>`;
+    }
+
+    function updateKpis(list){
+      el("kpiAll").textContent = list.length;
+      el("kpiLive").textContent = list.filter(x=>x.status==="uzivo").length;
+      el("kpiDone").textContent = list.filter(x=>x.status==="gotovo").length;
+    }
+
+    function fillSelects(){
+      const godista = Array.from(new Set(ALL.map(x=>x.godiste).filter(Boolean))).sort();
+      const grupe = Array.from(new Set(ALL.map(x=>x.grupa).filter(Boolean))).sort();
+
+      el("fGodiste").innerHTML = `<option value="">Sva godišta</option>` + godista.map(g=>`<option value="${g}">${g}</option>`).join("");
+      el("fGrupa").innerHTML = `<option value="">Sve grupe</option>` + grupe.map(g=>`<option value="${g}">${g}</option>`).join("");
+    }
+
+    function applyFilters(){
+      const god = el("fGodiste").value.trim();
+      const grp = el("fGrupa").value.trim();
+      const st = el("fStatus").value.trim();
+      const q = el("fSearch").value.trim().toLowerCase();
+
+      let list = [...ALL];
+      if(god) list = list.filter(x => String(x.godiste||"") === god);
+      if(grp) list = list.filter(x => String(x.grupa||"") === grp);
+      if(st) list = list.filter(x => x.status === st);
+      if(q){
+        list = list.filter(x =>
+          (x.domacin||"").toLowerCase().includes(q) ||
+          (x.gost||"").toLowerCase().includes(q) ||
+          (x.faza||"").toLowerCase().includes(q) ||
+          (x.grupa||"").toLowerCase().includes(q)
+        );
+      }
+
+      render(list);
+      updateKpis(list);
+    }
+
+    function render(list){
+      const tb = el("tbody");
+      if(!list.length){
+        tb.innerHTML = `<tr><td colspan="6" class="muted">Nema utakmica za izabrani filter.</td></tr>`;
+        return;
+      }
+      tb.innerHTML = list.map(r => `
+        <tr>
+          <td>${r.godiste ?? ""}</td>
+          <td>${r.grupa ?? ""}</td>
+          <td>${r.faza ?? ""}</td>
+          <td><b>${r.domacin ?? ""}</b> <span class="muted">vs</span> <b>${r.gost ?? ""}</b></td>
+          <td class="score">${(r.gol_domacin ?? 0)} : ${(r.gol_gost ?? 0)}</td>
+          <td>${tagStatus(r.status)}</td>
+        </tr>
+      `).join("");
+      el("lastUpdate").textContent = "Ažurirano: " + new Date().toLocaleString();
+    }
+
+    async function load(){
+      setConn("loading");
+      const { data, error } = await sb
+        .from("matches")
+        .select("*")
+        .order("created_at", { ascending:false });
+
+      if(error){
+        setConn("bad");
+        el("tbody").innerHTML = `<tr><td colspan="6" style="color:#ff4d6d;font-weight:700">Greška SELECT: ${error.message}</td></tr>`;
+        return;
+      }
+
+      setConn("ok");
+      ALL = data || [];
+      fillSelects();
+      applyFilters();
+    }
+
+    // listeners
+    ["fGodiste","fGrupa","fStatus","fSearch"].forEach(id=>{
+      el(id).addEventListener("input", applyFilters);
+      el(id).addEventListener("change", applyFilters);
+    });
+
+    el("btnRefresh").addEventListener("click", load);
+    el("btnA2HS").addEventListener("click", () => {
+      alert("Na telefonu: Share → Add to Home Screen. Tako dobiješ app-ikonicu za live rezultate ✅");
+    });
+
+    // realtime
+    sb.channel("matches-realtime-home")
+      .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => load())
+      .subscribe();
+
+    // init
+    load();
+  </script>
 </body>
 </html>
