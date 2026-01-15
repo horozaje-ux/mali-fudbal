@@ -1,232 +1,151 @@
 <!doctype html>
 <html lang="sr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mali fudbal – Turnir Live</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mali fudbal – Turnir Live</title>
 
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#0b1020">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0b1020">
 
-  <style>
-    :root{
-      --bg:#070a14; --card:rgba(255,255,255,.06);
-      --text:#e9eefc; --muted:rgba(233,238,252,.7);
-      --line:rgba(255,255,255,.12);
-      --ok:#27e38a; --warn:#ffcc66; --bad:#ff4d6d;
-      --radius:18px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      color:var(--text);
-      background:linear-gradient(180deg,#050817,#070a14);
-      min-height:100vh;
-    }
-    .wrap{max-width:1200px;margin:auto;padding:16px}
-    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-    .brand{display:flex;gap:10px;align-items:center}
-    .logo{
-      width:44px;height:44px;border-radius:14px;
-      background:linear-gradient(135deg,#4f7cff,#ff5ab4);
-      display:grid;place-items:center;font-weight:900;
-    }
-    .btn{border:1px solid var(--line);background:var(--card);color:var(--text);
-      padding:10px 14px;border-radius:14px;cursor:pointer;text-decoration:none}
-    .btn.primary{background:linear-gradient(135deg,#4f7cff,#ff5ab4)}
-    .pill{padding:8px 12px;border-radius:999px;border:1px solid var(--line);font-size:12px}
-    .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
-    .dot.ok{background:var(--ok)}
-    .dot.bad{background:var(--bad)}
-    .card{background:var(--card);border:1px solid var(--line);
-      border-radius:var(--radius);padding:14px;margin-top:14px}
-    .tabs{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-    .tab{padding:10px 14px;border-radius:14px;border:1px solid var(--line);background:transparent;cursor:pointer}
-    .tab.active{background:linear-gradient(135deg,#4f7cff,#ff5ab4)}
-    table{width:100%;border-collapse:collapse;min-width:780px}
-    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.1);font-size:13px}
-    th{color:var(--muted)}
-    .score{font-weight:900}
-    .tag{padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line)}
-    .live{background:#ffcc6622}
-    .done{background:#27e38a22}
-    .wait{background:#ffffff11}
-    input,select{
-      width:100%;padding:10px;border-radius:14px;
-      background:#00000033;border:1px solid var(--line);color:var(--text)
-    }
-    .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    .filters>*{flex:1 1 160px}
-    .genbar{display:flex;gap:10px;flex-wrap:wrap}
-    .chip{padding:8px 14px;border-radius:999px;border:1px solid var(--line);cursor:pointer}
-    .chip.active{background:#4f7cff55}
-    .footer{text-align:center;color:var(--muted);font-size:12px;margin:20px 0}
-  </style>
+<style>
+body{margin:0;font-family:system-ui;background:#070a14;color:#e9eefc}
+.wrap{max-width:1200px;margin:auto;padding:16px}
+.card{background:rgba(255,255,255,.06);border-radius:16px;padding:14px;margin-top:14px}
+button{padding:8px 14px;border-radius:999px;border:none;cursor:pointer}
+.tab{border:1px solid rgba(255,255,255,.15);background:none;color:#fff}
+.tab.active{background:#4f7cff}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.1)}
+.score{font-weight:900}
+</style>
 </head>
 
 <body>
 <div class="wrap">
+<h2>Mali fudbal – Turnir</h2>
 
-  <!-- TOP -->
-  <div class="topbar">
-    <div class="brand">
-      <div class="logo">MF</div>
-      <div>
-        <b>Mali fudbal – Turnir</b><br>
-        <span style="font-size:12px;color:var(--muted)">2015 • 2016 • 2017 • 2018</span>
-      </div>
-    </div>
+<div>
+<button class="tab active" data-tab="live">Live</button>
+<button class="tab" data-tab="grupe">Grupe</button>
+<button class="tab" data-tab="elim">Eliminacije</button>
+</div>
 
-    <div style="display:flex;gap:10px;align-items:center">
-      <span class="pill"><span id="connDot" class="dot"></span><span id="connText">Spajam se…</span></span>
-      <a href="./admin.html" class="btn primary">⚙️ Admin</a>
-    </div>
-  </div>
+<div id="live" class="card"></div>
+<div id="grupe" class="card" style="display:none"></div>
+<div id="elim" class="card" style="display:none"></div>
 
-  <!-- GENERACIJE -->
-  <div class="card">
-    <b>Generacije</b>
-    <div class="genbar" id="genBar" style="margin-top:8px"></div>
-
-    <div class="filters">
-      <input id="globalSearch" placeholder="Pretraga tima (npr. Dadeks)" />
-      <button class="btn" id="clearSearch">✖</button>
-    </div>
-
-    <div style="overflow:auto;margin-top:10px">
-      <table>
-        <thead>
-          <tr>
-            <th>Godište</th><th>Vrijeme</th><th>Teren</th><th>Faza</th><th>Grupa</th><th>Meč</th><th>Rezultat</th><th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="searchBody">
-          <tr><td colspan="8" style="color:var(--muted)">Ukucaj naziv tima gore</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- TABOVI -->
-  <div class="tabs">
-    <button class="tab active" data-tab="live">🔥 Live</button>
-    <button class="tab" data-tab="raspored">🗓️ Raspored</button>
-    <button class="tab" data-tab="grupe">📊 Grupe</button>
-    <button class="tab" data-tab="elim">🏆 Eliminacije</button>
-  </div>
-
-  <!-- LIVE -->
-  <div class="card" id="tab-live"></div>
-
-  <!-- RASPORED -->
-  <div class="card" id="tab-raspored" style="display:none"></div>
-
-  <!-- GRUPE -->
-  <div class="card" id="tab-grupe" style="display:none"></div>
-
-  <!-- ELIMINACIJE -->
-  <div class="card" id="tab-elim" style="display:none"></div>
-
-  <div class="footer">© Mali fudbal • Live sistem</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = "https://ayakstyzqrsjvrbfwgfs.supabase.co";
-const SUPABASE_KEY = "sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
-const GODISTA = ["2015","2016","2017","2018"];
-let activeGodiste = "2016";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const el=id=>document.getElementById(id);
+const SUPABASE_URL="https://ayakstyzqrsjvrbfwgfs.supabase.co";
+const SUPABASE_KEY="sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
+const GODISTA=["2015","2016","2017","2018"];
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let ALL=[];
 
-// status
-function setConn(ok){
-  el("connDot").className="dot "+(ok?"ok":"bad");
-  el("connText").textContent=ok?"Online":"Greška";
-}
-function tag(s){
-  if(s==="uzivo") return `<span class="tag live">UŽIVO</span>`;
-  if(s==="gotovo") return `<span class="tag done">GOTOVO</span>`;
-  return `<span class="tag wait">ČEKA</span>`;
-}
-function fmt(t){
-  if(!t) return "—";
-  const d=new Date(t);
-  return d.toLocaleString("sr-ME",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
-}
-
-// generacije
-function genBar(){
-  el("genBar").innerHTML=GODISTA.map(g=>
-    `<span class="chip ${g===activeGodiste?"active":""}" data-g="${g}">${g}</span>`
-  ).join("");
-  document.querySelectorAll(".chip").forEach(c=>{
-    c.onclick=()=>{activeGodiste=c.dataset.g;genBar();renderAll();};
-  });
-}
-
-// load
-async function load(){
-  const {data,error}=await sb.from("matches").select("*").order("vreme");
-  if(error){setConn(false);return;}
-  setConn(true);
-  ALL=data||[];
-  genBar();
-  renderAll();
-}
-function active(){return ALL.filter(x=>x.godiste==activeGodiste);}
-
-// render all
-function renderAll(){
-  renderSearch();
-  renderLive();
-  renderRaspored();
-  renderGrupe();
-  renderElim();
-}
-
-// global search
-function renderSearch(){
-  const q=el("globalSearch").value.toLowerCase();
-  const tb=el("searchBody");
-  if(!q){tb.innerHTML=`<tr><td colspan="8" style="color:var(--muted)">Ukucaj naziv tima gore</td></tr>`;return;}
-  const list=active().filter(x=>
-    (x.domacin||"").toLowerCase().includes(q)||
-    (x.gost||"").toLowerCase().includes(q)
-  );
-  tb.innerHTML=list.length?list.map(r=>`
-    <tr>
-      <td>${r.godiste}</td><td>${fmt(r.vreme)}</td><td>${r.teren||"—"}</td>
-      <td>${r.faza}</td><td>${r.grupa||""}</td>
-      <td><b>${r.domacin}</b> vs <b>${r.gost}</b></td>
-      <td class="score">${r.gol_domacin||0}:${r.gol_gost||0}</td>
-      <td>${tag(r.status)}</td>
-    </tr>
-  `).join(""):`<tr><td colspan="8" style="color:var(--muted)">Nema rezultata</td></tr>`;
-}
-el("globalSearch").oninput=renderSearch;
-el("clearSearch").onclick=()=>{el("globalSearch").value="";renderSearch();};
-
-// tabs
+// TABOVI
 document.querySelectorAll(".tab").forEach(b=>{
   b.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     b.classList.add("active");
-    ["live","raspored","grupe","elim"].forEach(t=>{
-      el("tab-"+t).style.display = b.dataset.tab===t?"block":"none";
+    ["live","grupe","elim"].forEach(id=>{
+      document.getElementById(id).style.display =
+        b.dataset.tab===id?"block":"none";
     });
   };
 });
 
-// placeholder renders (proširujemo dalje)
-function renderLive(){el("tab-live").innerHTML="<b>Live utakmice</b>";}
-function renderRaspored(){el("tab-raspored").innerHTML="<b>Raspored po terenu</b>";}
-function renderGrupe(){el("tab-grupe").innerHTML="<b>Tabele grupa</b>";}
-function renderElim(){el("tab-elim").innerHTML="<b>Eliminacije</b>";}
+// TABELA
+function computeStandings(matches){
+  const t={};
+  const g=n=>t[n]||(t[n]={team:n,P:0,W:0,D:0,L:0,GF:0,GA:0,PTS:0});
+  matches.forEach(m=>{
+    if(m.status!=="gotovo")return;
+    const A=g(m.domacin),B=g(m.gost);
+    A.P++;B.P++;
+    A.GF+=m.gol_domacin;A.GA+=m.gol_gost;
+    B.GF+=m.gol_gost;B.GA+=m.gol_domacin;
+    if(m.gol_domacin>m.gol_gost){A.W++;A.PTS+=3;B.L++;}
+    else if(m.gol_domacin<m.gol_gost){B.W++;B.PTS+=3;A.L++;}
+    else{A.D++;B.D++;A.PTS++;B.PTS++;}
+  });
+  return Object.values(t).sort((a,b)=>b.PTS-a.PTS||(b.GF-b.GA)-(a.GF-a.GA));
+}
 
+// AUTOMATSKI ČETVRTFINALE
+async function autoGenerateQuarterFinals(){
+  const insert=[];
+  GODISTA.forEach(g=>{
+    const groupMatches=ALL.filter(x=>x.godiste==g&&x.faza=="grupa");
+    const groups={};
+    groupMatches.forEach(m=>{
+      if(!groups[m.grupa])groups[m.grupa]=[];
+      groups[m.grupa].push(m);
+    });
+    if(!groups.A||!groups.B)return;
+
+    const A=computeStandings(groups.A);
+    const B=computeStandings(groups.B);
+    if(A.length<2||B.length<2)return;
+
+    [
+      {h:A[0].team,a:B[1].team},
+      {h:B[0].team,a:A[1].team}
+    ].forEach(p=>{
+      const ex=ALL.find(x=>
+        x.godiste==g&&x.faza=="cetvrtfinale"&&
+        x.domacin==p.h&&x.gost==p.a
+      );
+      if(!ex){
+        insert.push({
+          godiste:g,
+          faza:"cetvrtfinale",
+          domacin:p.h,
+          gost:p.a,
+          status:"ceka",
+          auto_generated:true
+        });
+      }
+    });
+  });
+  if(insert.length) await sb.from("matches").insert(insert);
+}
+
+// RENDER
+function render(){
+  document.getElementById("live").innerHTML =
+    "<h3>Live utakmice</h3>" +
+    ALL.filter(x=>x.status!=="ceka").map(m=>
+      `<div>${m.domacin} ${m.gol_domacin}:${m.gol_gost} ${m.gost}</div>`
+    ).join("");
+
+  document.getElementById("grupe").innerHTML =
+    "<h3>Grupe</h3>" +
+    GODISTA.map(g=>{
+      const m=ALL.filter(x=>x.godiste==g&&x.faza=="grupa");
+      const A=computeStandings(m.filter(x=>x.grupa=="A"));
+      const B=computeStandings(m.filter(x=>x.grupa=="B"));
+      return `<b>${g}</b><br>
+      A: ${A.map(t=>t.team).join(", ")}<br>
+      B: ${B.map(t=>t.team).join(", ")}`;
+    }).join("<hr>");
+
+  document.getElementById("elim").innerHTML =
+    "<h3>Četvrtfinale</h3>" +
+    ALL.filter(x=>x.faza=="cetvrtfinale").map(m=>
+      `<div>${m.domacin} 🆚 ${m.gost}</div>`
+    ).join("");
+}
+
+// LOAD
+async function load(){
+  const {data}=await sb.from("matches").select("*");
+  ALL=data||[];
+  await autoGenerateQuarterFinals();
+  render();
+}
 load();
 
 // PWA
