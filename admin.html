@@ -6,7 +6,7 @@
   <title>Admin – Mali fudbal</title>
   <style>
     body{font-family:system-ui,Segoe UI,Arial; margin:0; background:#f6f7fb;}
-    .wrap{max-width:980px;margin:0 auto;padding:16px}
+    .wrap{max-width:1000px;margin:0 auto;padding:16px}
     .card{background:#fff;border:1px solid #e7e7ee;border-radius:14px;padding:14px;margin:12px 0}
     input,select,button,textarea{padding:10px;border-radius:10px;border:1px solid #ddd;width:100%;font-size:16px}
     textarea{min-height:40px;resize:vertical}
@@ -34,7 +34,7 @@
 <body>
 <div class="wrap">
   <div class="top">
-    <h2 style="margin:10px 0">Admin – Rezultati</h2>
+    <h2 style="margin:10px 0">Admin – Turnir (2015–2018)</h2>
     <div id="statusPill" class="pill">Provjera…</div>
   </div>
 
@@ -67,7 +67,12 @@
     <div class="row3">
       <div>
         <label class="small">Godište</label>
-        <input id="godiste" placeholder="2016" />
+        <select id="godiste">
+          <option value="2015">2015</option>
+          <option value="2016" selected>2016</option>
+          <option value="2017">2017</option>
+          <option value="2018">2018</option>
+        </select>
       </div>
       <div>
         <label class="small">Grupa</label>
@@ -122,7 +127,7 @@
       <div>
         <label class="small">Vrijeme</label>
         <input id="vreme" type="datetime-local" />
-        <div class="mini muted" style="margin-top:6px">Unosiš lokalno vrijeme, sistem čuva i prikazuje “naški”.</div>
+        <div class="mini muted" style="margin-top:6px">Unosiš lokalno vrijeme.</div>
       </div>
       <div>
         <label class="small">Napomena</label>
@@ -137,7 +142,7 @@
   <div class="card">
     <div class="top">
       <h3 style="margin:0">Utakmice</h3>
-      <div class="small muted">mijenjaš vrijednosti u redu pa klik “Sačuvaj” (UPDATE)</div>
+      <div class="small muted">mijenjaš u redu pa klik “Sačuvaj” (UPDATE)</div>
     </div>
     <div style="overflow:auto;margin-top:10px">
       <table>
@@ -163,22 +168,20 @@
   </div>
 
   <div class="small muted" style="text-align:center;margin:18px 0">
-    Tip: na telefonu uključi “Add to Home Screen” za brzi admin.
+    Tip: na telefonu “Add to Home Screen” za brzi admin.
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // ✅ tvoje:
   const SUPABASE_URL = "https://ayakstyzqrsjvrbfwgfs.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
+  const GODISTA = ["2015","2016","2017","2018"];
 
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
   const el = (id) => document.getElementById(id);
-  const msg = (t, ok=true) => {
-    el("msg").innerHTML = ok ? `<span class="ok">${t}</span>` : `<span class="err">${t}</span>`;
-  };
+  const msg = (t, ok=true) => { el("msg").innerHTML = ok ? `<span class="ok">${t}</span>` : `<span class="err">${t}</span>`; };
 
   function setAddEnabled(enabled){
     const addCard = el("addCard");
@@ -192,32 +195,20 @@
     if(!v) return "—";
     const d = new Date(v);
     if(isNaN(d)) return String(v);
-    return d.toLocaleString("sr-ME", {
-      year:"numeric", month:"2-digit", day:"2-digit",
-      hour:"2-digit", minute:"2-digit"
-    });
+    return d.toLocaleString("sr-ME",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
   }
-
   function toDateTimeLocalValue(v){
     if(!v) return "";
     const d = new Date(v);
     if(isNaN(d)) return "";
-    // datetime-local traži lokalni ISO bez Z
     const pad = (n)=>String(n).padStart(2,"0");
-    const yyyy = d.getFullYear();
-    const mm = pad(d.getMonth()+1);
-    const dd = pad(d.getDate());
-    const hh = pad(d.getHours());
-    const mi = pad(d.getMinutes());
-    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
-
   function fromDateTimeLocalInput(val){
-    // val: "YYYY-MM-DDTHH:MM" (lokalno)
     if(!val) return null;
-    const d = new Date(val); // interpretira kao lokalno
+    const d = new Date(val);
     if(isNaN(d)) return null;
-    return d.toISOString(); // u DB ide timestamptz
+    return d.toISOString();
   }
 
   async function refreshAuthUI(){
@@ -274,8 +265,11 @@
   }
 
   async function addMatch(){
+    const godiste = el("godiste").value;
+    if(!GODISTA.includes(String(godiste))) { msg("Godište mora biti 2015–2018.", false); return; }
+
     const payload = {
-      godiste: el("godiste").value.trim(),
+      godiste: String(godiste),
       grupa: el("grupa").value.trim(),
       faza: el("faza").value,
       domacin: el("domacin").value.trim(),
@@ -292,7 +286,6 @@
     if(error){ msg("INSERT greška: " + error.message, false); return; }
 
     msg("Sačuvano ✅");
-    // reset samo “osjetljive” inpute
     ["domacin","gost","gol_domacin","gol_gost","napomena"].forEach(x => el(x).value = "");
     await loadMatches();
   }
@@ -304,8 +297,7 @@
     const status = tr.querySelector('[data-k="status"]').value;
     const teren = tr.querySelector('[data-k="teren"]').value.trim() || null;
     const napomena = tr.querySelector('[data-k="napomena"]').value.trim() || null;
-    const vremeLocal = tr.querySelector('[data-k="vreme"]').value;
-    const vreme = fromDateTimeLocalInput(vremeLocal);
+    const vreme = fromDateTimeLocalInput(tr.querySelector('[data-k="vreme"]').value);
 
     const { error } = await sb
       .from("matches")
@@ -317,24 +309,17 @@
     await loadMatches();
   }
 
-  // events
   el("btnLogin").addEventListener("click", async () => {
-    const email = el("email").value.trim();
-    const password = el("password").value;
-
-    const { error } = await sb.auth.signInWithPassword({ email, password });
+    const { error } = await sb.auth.signInWithPassword({ email: el("email").value.trim(), password: el("password").value });
     if(error){ msg("Login greška: " + error.message, false); return; }
-
     msg("Ulogovan ✅");
-    await refreshAuthUI();
-    await loadMatches();
+    await refreshAuthUI(); await loadMatches();
   });
 
   el("btnLogout").addEventListener("click", async () => {
     await sb.auth.signOut();
     msg("Izlogovan.");
-    await refreshAuthUI();
-    await loadMatches();
+    await refreshAuthUI(); await loadMatches();
   });
 
   el("btnAdd").addEventListener("click", addMatch);
@@ -342,16 +327,13 @@
   document.addEventListener("click", (e) => {
     const btn = e.target.closest('button[data-action="save"]');
     if(!btn) return;
-    const tr = btn.closest("tr");
-    saveRow(tr);
+    saveRow(btn.closest("tr"));
   });
 
-  // realtime refresh (admin)
   sb.channel("matches-realtime-admin")
     .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => loadMatches())
     .subscribe();
 
-  // init
   refreshAuthUI();
   loadMatches();
 </script>
