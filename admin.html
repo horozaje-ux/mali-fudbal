@@ -6,7 +6,7 @@
   <title>Admin – Mali fudbal</title>
   <style>
     body{font-family:system-ui,Segoe UI,Arial; margin:0; background:#f6f7fb;}
-    .wrap{max-width:900px;margin:0 auto;padding:16px}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
     .card{background:#fff;border:1px solid #e7e7ee;border-radius:14px;padding:14px;margin:12px 0}
     input,select,button{padding:10px;border-radius:10px;border:1px solid #ddd;width:100%;font-size:16px}
     button{background:#111;color:#fff;border:none;cursor:pointer}
@@ -14,15 +14,20 @@
     button:disabled{opacity:.5;cursor:not-allowed}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .row4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
     .small{font-size:13px;color:#666}
     .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
     .pill{padding:6px 10px;border-radius:999px;background:#eef; font-size:12px}
     table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
+    th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px;vertical-align:top}
     .muted{color:#777}
     .ok{color:green;font-weight:600}
     .err{color:#b00020;font-weight:600}
     .hint{background:#fff7d6;border:1px solid #ffe08a;padding:10px;border-radius:12px;margin-top:10px}
+    .nowrap{white-space:nowrap}
+    .w70{width:70px}
+    .w120{width:120px}
+    .w160{width:160px}
   </style>
 </head>
 <body>
@@ -51,11 +56,11 @@
     <div id="msg" style="margin-top:10px" class="small"></div>
 
     <div class="hint small">
-      Ako si “Ulogovan ✅” a nema “Dodaj” — uradi refresh sa <b>?nocache=1</b>.
+      Ako si “Ulogovan ✅” a ne možeš dodavati — provjeri RLS/policies i uradi refresh sa <b>?nocache=1</b>.
     </div>
   </div>
 
-  <!-- DODAJ: namjerno UVIJEK postoji, ali se enable/disable radi preko JS -->
+  <!-- DODAJ: namjerno UVIJEK postoji, enable/disable radi JS -->
   <div class="card" id="addCard">
     <h3 style="margin:0 0 10px">Dodaj utakmicu / rezultat</h3>
 
@@ -109,6 +114,22 @@
       </div>
     </div>
 
+    <!-- NOVO: teren + vrijeme + napomena -->
+    <div class="row3" style="margin-top:10px">
+      <div>
+        <label class="small">Teren</label>
+        <input id="teren" placeholder="Teren 1" />
+      </div>
+      <div>
+        <label class="small">Vrijeme</label>
+        <input id="vreme" type="datetime-local" />
+      </div>
+      <div>
+        <label class="small">Napomena</label>
+        <input id="napomena" placeholder="npr. Kolo 1 / derbi" />
+      </div>
+    </div>
+
     <button id="btnAdd" style="margin-top:12px">Sačuvaj</button>
     <div id="addHint" class="small muted" style="margin-top:8px"></div>
   </div>
@@ -116,17 +137,26 @@
   <div class="card">
     <div class="top">
       <h3 style="margin:0">Utakmice</h3>
-      <div class="small muted">klikni “Sačuvaj” pored reda za izmjenu (UPDATE)</div>
+      <div class="small muted">mijenjaš rezultat/status pa klik “Sačuvaj” (UPDATE)</div>
     </div>
     <div style="overflow:auto;margin-top:10px">
       <table>
         <thead>
           <tr>
-            <th>Godište</th><th>Grupa</th><th>Faza</th><th>Meč</th><th>Rezultat</th><th>Status</th><th></th>
+            <th>Godište</th>
+            <th>Grupa</th>
+            <th>Faza</th>
+            <th>Meč</th>
+            <th class="nowrap">Teren</th>
+            <th class="nowrap">Vrijeme</th>
+            <th>Napomena</th>
+            <th>Rezultat</th>
+            <th>Status</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="7" class="muted">Učitavam…</td></tr>
+          <tr><td colspan="10" class="muted">Učitavam…</td></tr>
         </tbody>
       </table>
     </div>
@@ -139,17 +169,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // ✅ OVO JE TVOJE:
+  // ✅ TVOJI PODACI (OK za browser):
   const SUPABASE_URL = "https://ayakstyzqrsjvrbfwgfs.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
 
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
   const el = (id) => document.getElementById(id);
-  const msg = (t, ok=true) => { el("msg").innerHTML = ok ? `<span class="ok">${t}</span>` : `<span class="err">${t}</span>`; };
+  const msg = (t, ok=true) => {
+    el("msg").innerHTML = ok ? `<span class="ok">${t}</span>` : `<span class="err">${t}</span>`;
+  };
 
   function setAddEnabled(enabled){
-    // enable/disable cijeli addCard
     const addCard = el("addCard");
     addCard.querySelectorAll("input,select,button").forEach(x => x.disabled = !enabled);
     el("addHint").innerHTML = enabled
@@ -165,19 +196,31 @@
     setAddEnabled(logged);
   }
 
+  function fmtDate(iso){
+    if(!iso) return "";
+    try{
+      const d = new Date(iso);
+      return d.toLocaleString("sr-Latn-ME", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+    }catch(e){
+      return iso;
+    }
+  }
+
   async function loadMatches(){
+    // Ako hoces prvo po vremenu pa po created_at:
     const { data, error } = await sb
       .from("matches")
       .select("*")
+      .order("vreme", { ascending:true, nullsFirst:false })
       .order("created_at", { ascending:false });
 
     const tb = el("tbody");
     if(error){
-      tb.innerHTML = `<tr><td colspan="7" class="err">Greška SELECT: ${error.message}</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="10" class="err">Greška SELECT: ${error.message}</td></tr>`;
       return;
     }
     if(!data || data.length === 0){
-      tb.innerHTML = `<tr><td colspan="7" class="muted">Nema unosa još. Dodaj prvi meč gore ⬆️</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="10" class="muted">Nema unosa još. Dodaj prvi meč gore ⬆️</td></tr>`;
       return;
     }
 
@@ -186,14 +229,17 @@
         <td>${r.godiste ?? ""}</td>
         <td>${r.grupa ?? ""}</td>
         <td>${r.faza ?? ""}</td>
-        <td>${r.domacin ?? ""} <span class="muted">vs</span> ${r.gost ?? ""}</td>
-        <td>
-          <input style="width:70px" type="number" min="0" value="${r.gol_domacin ?? 0}" data-k="gol_domacin">
+        <td><b>${r.domacin ?? ""}</b> <span class="muted">vs</span> <b>${r.gost ?? ""}</b></td>
+        <td class="nowrap">${r.teren ?? ""}</td>
+        <td class="nowrap">${fmtDate(r.vreme)}</td>
+        <td>${r.napomena ?? ""}</td>
+        <td class="nowrap">
+          <input class="w70" type="number" min="0" value="${r.gol_domacin ?? 0}" data-k="gol_domacin">
           :
-          <input style="width:70px" type="number" min="0" value="${r.gol_gost ?? 0}" data-k="gol_gost">
+          <input class="w70" type="number" min="0" value="${r.gol_gost ?? 0}" data-k="gol_gost">
         </td>
         <td>
-          <select data-k="status" style="width:120px">
+          <select data-k="status" class="w120">
             ${["ceka","uzivo","gotovo"].map(s => `<option value="${s}" ${r.status===s?"selected":""}>${s}</option>`).join("")}
           </select>
         </td>
@@ -203,6 +249,7 @@
   }
 
   async function addMatch(){
+    const vremeLocal = el("vreme").value; // "YYYY-MM-DDTHH:mm"
     const payload = {
       godiste: el("godiste").value.trim(),
       grupa: el("grupa").value.trim(),
@@ -211,14 +258,19 @@
       gost: el("gost").value.trim(),
       gol_domacin: el("gol_domacin").value === "" ? null : Number(el("gol_domacin").value),
       gol_gost: el("gol_gost").value === "" ? null : Number(el("gol_gost").value),
-      status: el("status").value
+      status: el("status").value,
+
+      // NOVO:
+      teren: el("teren").value.trim() || null,
+      vreme: vremeLocal ? new Date(vremeLocal).toISOString() : null,
+      napomena: el("napomena").value.trim() || null,
     };
 
     const { error } = await sb.from("matches").insert(payload);
     if(error){ msg("INSERT greška: " + error.message, false); return; }
 
     msg("Sačuvano ✅");
-    ["domacin","gost","gol_domacin","gol_gost"].forEach(x => el(x).value = "");
+    ["domacin","gost","gol_domacin","gol_gost","teren","vreme","napomena"].forEach(x => el(x).value = "");
     await loadMatches();
   }
 
