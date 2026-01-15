@@ -5,13 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>TV – Mali fudbal</title>
   <meta name="theme-color" content="#0b1020" />
-  <link rel="manifest" href="./manifest.json" />
   <style>
     :root{
-      --bg:#070a14; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.10);
-      --text:#e9eefc; --muted:rgba(233,238,252,.72);
-      --ok:#27e38a; --warn:#ffcc66; --bad:#ff4d6d;
-      --radius:22px; --glow:0 16px 40px rgba(0,0,0,.45);
+      --bg:#070a14; --card:rgba(255,255,255,.06); --card2:rgba(255,255,255,.10);
+      --text:#e9eefc; --muted:rgba(233,238,252,.70); --line:rgba(255,255,255,.10);
+      --ok:#27e38a; --warn:#ffcc66; --bad:#ff4d6d; --glow: 0 10px 30px rgba(0,0,0,.45);
+      --radius:18px;
     }
     *{box-sizing:border-box}
     body{
@@ -24,144 +23,146 @@
         linear-gradient(180deg, #050817, #070a14 55%, #050714);
       min-height:100vh;
     }
-    .wrap{max-width:1400px;margin:0 auto;padding:18px}
-    .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo{width:52px;height:52px;border-radius:18px;background:linear-gradient(135deg, rgba(70,120,255,.9), rgba(255,90,180,.85));
-      box-shadow:var(--glow);display:grid;place-items:center;font-weight:900;font-size:18px}
-    .title{line-height:1.05}
-    .title b{font-size:20px}
-    .title div{font-size:12px;color:var(--muted);margin-top:4px}
-    .pill{display:inline-flex;align-items:center;gap:10px;padding:10px 12px;border-radius:999px;background:rgba(255,255,255,.08);
-      border:1px solid var(--line);font-size:13px;color:var(--muted)}
-    .dot{width:10px;height:10px;border-radius:999px;background:var(--warn);box-shadow:0 0 0 5px rgba(255,204,102,.14)}
-    .dot.ok{background:var(--ok);box-shadow:0 0 0 5px rgba(39,227,138,.14)}
-    .dot.bad{background:var(--bad);box-shadow:0 0 0 5px rgba(255,77,109,.14)}
-    .btns{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    button, a{
-      appearance:none;border:1px solid var(--line);background:rgba(255,255,255,.07);color:var(--text);text-decoration:none;
+    .wrap{max-width:1200px;margin:0 auto;padding:18px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0 14px;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg, rgba(70,120,255,.9), rgba(255,90,180,.85));box-shadow:var(--glow);display:grid;place-items:center;font-weight:900}
+    .brand h1{margin:0;font-size:18px;line-height:1.1}
+    .brand .sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--line);font-size:12px;color:var(--muted)}
+    .dot{width:8px;height:8px;border-radius:999px;background:var(--warn);box-shadow:0 0 0 4px rgba(255,204,102,.15)}
+    .dot.ok{background:var(--ok);box-shadow:0 0 0 4px rgba(39,227,138,.14)}
+    .dot.bad{background:var(--bad);box-shadow:0 0 0 4px rgba(255,77,109,.14)}
+    .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+    a.btn, button.btn{
+      appearance:none;border:1px solid var(--line);background:var(--card);color:var(--text);text-decoration:none;
       padding:10px 12px;border-radius:14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;
-      box-shadow:0 6px 18px rgba(0,0,0,.25);transition:.15s transform,.15s background,.15s border;font-size:13px
+      box-shadow:0 6px 16px rgba(0,0,0,.25);transition:.15s transform,.15s background,.15s border;font-size:13px
     }
-    button:hover,a:hover{transform:translateY(-1px);background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.18)}
-    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:14px}
-    @media(max-width:1050px){.grid{grid-template-columns:1fr}}
-    .card{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--glow)}
-    .h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-    .h b{font-size:16px}
-    .big{font-size:28px;font-weight:900}
-    .muted{color:var(--muted)}
-    .tag{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.06);font-size:12px;white-space:nowrap}
+    a.btn:hover, button.btn:hover{transform:translateY(-1px);background:var(--card2);border-color:rgba(255,255,255,.18)}
+    .btn.primary{background:linear-gradient(135deg, rgba(70,120,255,.75), rgba(255,90,180,.55));border-color:rgba(255,255,255,.15)}
+    .grid{display:grid;grid-template-columns:1fr .45fr;gap:14px}
+    @media(max-width:980px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--glow)}
+    .bigTitle{font-size:20px;font-weight:900;margin:0}
+    .small{font-size:12px;color:var(--muted)}
+    .tableWrap{overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.10)}
+    table{width:100%;border-collapse:collapse;min-width:780px}
+    th,td{padding:14px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:14px}
+    th{color:rgba(233,238,252,.75);font-weight:800}
+    .score{font-weight:900;font-size:16px}
+    .tag{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);font-size:12px;white-space:nowrap}
     .tag.live{border-color:rgba(255,204,102,.35);background:rgba(255,204,102,.12)}
     .tag.done{border-color:rgba(39,227,138,.35);background:rgba(39,227,138,.12)}
     .tag.wait{border-color:rgba(233,238,252,.20);background:rgba(233,238,252,.07)}
-    .tableWrap{overflow:auto;border-radius:18px;border:1px solid rgba(255,255,255,.10)}
-    table{width:100%;border-collapse:collapse;min-width:880px}
-    th,td{padding:14px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:14px}
-    th{color:rgba(233,238,252,.75);font-weight:800}
-    .score{font-weight:1000}
-    .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media(max-width:900px){.row2{grid-template-columns:1fr}}
-    .matchBox{padding:14px;border-radius:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06)}
-    .teams{display:flex;justify-content:space-between;gap:12px;margin:10px 0}
-    .teams b{font-size:20px}
-    .teams .scoreBig{font-size:34px;font-weight:1000}
-    .foot{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
+    .panelRow{display:flex;justify-content:space-between;gap:10px;margin:10px 0;flex-wrap:wrap}
+    .kpi{padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06)}
+    .kpi b{display:block;font-size:16px}
+    .kpi span{font-size:12px;color:var(--muted)}
+    .terList{display:grid;gap:10px;margin-top:12px}
+    .terBtn{padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);cursor:pointer;text-align:left}
+    .terBtn.active{background:linear-gradient(135deg, rgba(40,255,160,.14), rgba(70,120,255,.18));border-color:rgba(255,255,255,.18)}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="top">
+    <div class="topbar">
       <div class="brand">
-        <div class="logo">MF</div>
-        <div class="title">
-          <b>TV – Mali fudbal</b>
-          <div>Auto rotacija terena • Live + naredne utakmice</div>
+        <div class="logo">TV</div>
+        <div>
+          <h1 class="bigTitle" id="title">TV – Teren</h1>
+          <div class="sub" id="sub">Live prikaz rasporeda i rezultata</div>
         </div>
       </div>
 
       <div class="btns">
-        <span class="pill"><span class="dot" id="dot"></span><span id="conn">Spajam se…</span></span>
-        <span class="pill">📍 Teren: <b id="terenNow">—</b></span>
-        <button id="btnFS">⛶ Fullscreen</button>
-        <button id="btnRotate">🔁 Rotacija: <b id="rotState">ON</b></button>
-        <button id="btnNext">➡️ Sledeći teren</button>
-        <a href="./index.html">🏠 Nazad</a>
+        <span class="pill"><span class="dot" id="connDot"></span><span id="connText">Spajam se…</span></span>
+        <a class="btn" href="./index.html">🏠 Početna</a>
+        <a class="btn primary" href="./admin.html">⚙️ Admin</a>
+        <button class="btn" id="btnRefresh">🔄 Osvježi</button>
       </div>
     </div>
 
     <div class="grid">
       <div class="card">
-        <div class="h">
-          <b>LIVE na terenu</b>
-          <span class="muted" id="last">—</span>
+        <div class="panelRow">
+          <div>
+            <div class="small">Prikaz:</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+              <b id="terenLabel" style="font-size:20px">🏟️ —</b>
+              <span class="tag" id="modeTag">—</span>
+              <span class="tag" id="godTag" style="display:none">—</span>
+            </div>
+            <div class="small" id="lastUpdate" style="margin-top:6px">—</div>
+          </div>
+
+          <div class="kpi">
+            <b id="kpiCount">0</b>
+            <span>Utakmice na terenu</span>
+          </div>
         </div>
 
-        <div id="liveWrap" class="row2">
-          <div class="matchBox muted">Učitavam…</div>
-          <div class="matchBox muted">Učitavam…</div>
-        </div>
-
-        <div style="margin-top:14px" class="h">
-          <b>Naredne utakmice (ovaj teren)</b>
-          <span class="muted">sortirano po vremenu</span>
-        </div>
-        <div class="tableWrap">
+        <div class="tableWrap" style="margin-top:12px">
           <table>
             <thead>
               <tr>
-                <th>Vrijeme</th><th>Faza</th><th>Godište</th><th>Grupa</th><th>Meč</th><th>Status</th>
+                <th>Vrijeme</th><th>Faza</th><th>Godište</th><th>Grupa</th><th>Meč</th><th>Rezultat</th><th>Status</th>
               </tr>
             </thead>
-            <tbody id="tbNext">
-              <tr><td colspan="6" class="muted">Učitavam…</td></tr>
-            </tbody>
+            <tbody id="tbody"><tr><td colspan="7" class="small">Učitavam…</td></tr></tbody>
           </table>
         </div>
       </div>
 
       <div class="card">
-        <div class="h">
-          <b>Pregled – uskoro / uživo (svi tereni)</b>
-          <span class="muted">top 12</span>
-        </div>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Vrijeme</th><th>Teren</th><th>Faza</th><th>Meč</th><th>Rezultat</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="tbAll">
-              <tr><td colspan="6" class="muted">Učitavam…</td></tr>
-            </tbody>
-          </table>
+        <b>Kontrola terena</b>
+        <div class="small" style="margin-top:6px">
+          Ako je rotate ON — automatski mijenja teren.
         </div>
 
-        <div class="foot">Savjet: ostavi otvoreno na TV-u • automatski se osvježava (realtime)</div>
+        <div class="terList" id="terenList"></div>
+
+        <div style="margin-top:14px" class="small">
+          Link primjer:
+          <div style="margin-top:6px;word-break:break-all">
+            tv.html?teren=Teren%201&rotate=off<br/>
+            tv.html?rotate=on&interval=10<br/>
+            tv.html?godiste=2016&rotate=on
+          </div>
+        </div>
       </div>
+    </div>
+
+    <div class="small" style="text-align:center;margin:14px 0;color:rgba(233,238,252,.55)">
+      © Mali fudbal • TV ekran
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // ✅ tvoji podaci (publishable je OK za front)
+    // ✅ tvoji podaci
     const SUPABASE_URL = "https://ayakstyzqrsjvrbfwgfs.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
 
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const DEFAULT_TERENI = ["Teren 1","Teren 2","Teren 3","Teren 4"];
+    const DEFAULT_INTERVAL = 15; // sekunde
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     const el = (id)=>document.getElementById(id);
 
     let ALL = [];
-    let TERENI = ["Teren 1","Teren 2","Teren 3","Teren 4"];
-    let terenIndex = 0;
+    let TERENI = [...DEFAULT_TERENI];
+    let currentTeren = DEFAULT_TERENI[0];
     let rotateOn = true;
-    let rotateTimer = null;
+    let intervalSec = DEFAULT_INTERVAL;
+    let godisteFilter = ""; // opciono
+    let timer = null;
+
+    function getParams(){ return new URLSearchParams(location.search); }
 
     function setConn(state){
-      const dot = el("dot");
-      const text = el("conn");
+      const dot = el("connDot");
+      const text = el("connText");
       if(state==="ok"){ dot.className="dot ok"; text.textContent="Online"; }
       else if(state==="bad"){ dot.className="dot bad"; text.textContent="Greška"; }
       else { dot.className="dot"; text.textContent="Spajam se…"; }
@@ -177,17 +178,65 @@
       if(!v) return "—";
       const d = new Date(v);
       if(isNaN(d)) return String(v);
-      return d.toLocaleString();
+      return d.toLocaleString("sr-ME",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
     }
 
-    function scoreText(r){
-      const a = (r.gol_domacin ?? 0);
-      const b = (r.gol_gost ?? 0);
-      return `${a} : ${b}`;
+    function renderTerenList(){
+      const wrap = el("terenList");
+      wrap.innerHTML = TERENI.map(t => `
+        <button class="terBtn ${t===currentTeren ? "active" : ""}" data-t="${t}">
+          🏟️ <b>${t}</b><br/>
+          <span class="small">${rotateOn ? "rotate ON (manual override)" : "rotate OFF (fiksno)"}</span>
+        </button>
+      `).join("");
+
+      wrap.querySelectorAll(".terBtn").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          currentTeren = b.getAttribute("data-t");
+          rotateOn = false; // klik = fiksiraj
+          stopRotate();
+          updateHeader();
+          renderTerenList();
+          render();
+        });
+      });
     }
 
-    function sortByTime(a,b){
-      return new Date(a.vreme || 0) - new Date(b.vreme || 0);
+    function updateHeader(){
+      el("terenLabel").textContent = `🏟️ ${currentTeren}`;
+      el("title").textContent = `TV – ${currentTeren}`;
+
+      el("modeTag").textContent = rotateOn ? `🔁 ROTATE ON • ${intervalSec}s` : `🎯 FIX • rotate OFF`;
+      el("modeTag").className = "tag " + (rotateOn ? "live" : "wait");
+
+      if(godisteFilter){
+        el("godTag").style.display = "inline-flex";
+        el("godTag").textContent = `Godište ${godisteFilter}`;
+        el("godTag").className = "tag done";
+      }else{
+        el("godTag").style.display = "none";
+      }
+
+      el("sub").textContent = godisteFilter
+        ? `Prikaz za godište ${godisteFilter} • teren: ${currentTeren}`
+        : `Prikaz za sve generacije • teren: ${currentTeren}`;
+    }
+
+    function startRotate(){
+      if(!rotateOn) return;
+      stopRotate();
+      timer = setInterval(()=>{
+        const idx = TERENI.indexOf(currentTeren);
+        const next = TERENI[(idx + 1) % TERENI.length];
+        currentTeren = next;
+        updateHeader();
+        renderTerenList();
+        render();
+      }, intervalSec * 1000);
+    }
+
+    function stopRotate(){
+      if(timer){ clearInterval(timer); timer = null; }
     }
 
     async function load(){
@@ -200,153 +249,79 @@
 
       if(error){
         setConn("bad");
-        el("liveWrap").innerHTML = `<div class="matchBox" style="color:#ff4d6d;font-weight:900">Greška SELECT: ${error.message}</div>`;
-        el("tbNext").innerHTML = `<tr><td colspan="6" class="muted">—</td></tr>`;
-        el("tbAll").innerHTML = `<tr><td colspan="6" class="muted">—</td></tr>`;
+        el("tbody").innerHTML = `<tr><td colspan="7" style="color:#ff4d6d;font-weight:800">Greška SELECT: ${error.message}</td></tr>`;
         return;
       }
-
       setConn("ok");
       ALL = data || [];
-      el("last").textContent = "Ažurirano: " + new Date().toLocaleString();
 
-      // ako si upisao terene drugačije, automatski pokupi iz baze
-      const fromDb = Array.from(new Set(ALL.map(x=>x.teren).filter(Boolean)));
-      if(fromDb.length) TERENI = fromDb.sort();
+      // Ako user nema "Teren 1..4" nego druga imena, uzmi iz baze:
+      const terr = Array.from(new Set(ALL.map(x=>x.teren).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b)));
+      if(terr.length){
+        TERENI = terr;
+        if(!TERENI.includes(currentTeren)) currentTeren = TERENI[0];
+      }
 
+      el("lastUpdate").textContent = "Ažurirano: " + new Date().toLocaleString("sr-ME");
+      updateHeader();
+      renderTerenList();
       render();
+      startRotate();
     }
 
     function render(){
-      const teren = TERENI[terenIndex] || "Teren 1";
-      el("terenNow").textContent = teren;
+      let list = ALL.filter(x => String(x.teren||"") === String(currentTeren));
+      if(godisteFilter) list = list.filter(x => String(x.godiste||"") === String(godisteFilter));
+      list.sort((a,b)=> new Date(a.vreme||0) - new Date(b.vreme||0));
 
-      const now = Date.now();
+      el("kpiCount").textContent = String(list.length);
 
-      // LIVE utakmice na terenu
-      const live = ALL
-        .filter(x => (x.teren||"") === teren)
-        .filter(x => (x.status||"") === "uzivo");
-
-      // ako nema uzivo, prikaži prve 2 “čekaju” (najbliže)
-      let primary = live;
-      if(!primary.length){
-        primary = ALL
-          .filter(x => (x.teren||"") === teren)
-          .filter(x => (x.status||"") !== "gotovo")
-          .slice()
-          .sort(sortByTime)
-          .slice(0,2);
-      }else{
-        primary = primary.slice(0,2);
+      const tb = el("tbody");
+      if(!list.length){
+        tb.innerHTML = `<tr><td colspan="7" class="small" style="color:rgba(233,238,252,.7)">Nema utakmica za ovaj teren.</td></tr>`;
+        return;
       }
 
-      const liveWrap = el("liveWrap");
-      if(!primary.length){
-        liveWrap.innerHTML = `<div class="matchBox muted">Nema utakmica na ${teren}.</div><div class="matchBox muted">—</div>`;
-      }else{
-        const cards = primary.map(r => `
-          <div class="matchBox">
-            <div class="muted">${fmtTime(r.vreme)} • ${r.faza ?? ""} • godište ${r.godiste ?? ""} ${r.grupa ? ("• grupa " + r.grupa) : ""}</div>
-            <div class="teams">
-              <b>${r.domacin ?? ""}</b>
-              <span class="scoreBig">${scoreText(r)}</span>
-              <b>${r.gost ?? ""}</b>
-            </div>
-            <div>${tagStatus(r.status)}</div>
-          </div>
-        `);
-        if(cards.length===1) cards.push(`<div class="matchBox muted">—</div>`);
-        liveWrap.innerHTML = cards.join("");
-      }
-
-      // Naredne (ovaj teren)
-      const upcoming = ALL
-        .filter(x => (x.teren||"") === teren)
-        .filter(x => (x.status||"") !== "gotovo")
-        .slice()
-        .sort(sortByTime)
-        .slice(0, 8);
-
-      const tbNext = el("tbNext");
-      tbNext.innerHTML = upcoming.length ? upcoming.map(r => `
+      tb.innerHTML = list.map(r=>`
         <tr>
           <td>${fmtTime(r.vreme)}</td>
           <td>${r.faza ?? ""}</td>
-          <td>${r.godiste ?? ""}</td>
+          <td><b>${r.godiste ?? ""}</b></td>
           <td>${r.grupa ?? ""}</td>
-          <td><b>${r.domacin ?? ""}</b> <span class="muted">vs</span> <b>${r.gost ?? ""}</b></td>
+          <td><b>${r.domacin ?? ""}</b> <span style="color:rgba(233,238,252,.6)">vs</span> <b>${r.gost ?? ""}</b></td>
+          <td class="score">${(r.gol_domacin ?? 0)} : ${(r.gol_gost ?? 0)}</td>
           <td>${tagStatus(r.status)}</td>
         </tr>
-      `).join("") : `<tr><td colspan="6" class="muted">Nema narednih utakmica za ovaj teren.</td></tr>`;
-
-      // Pregled svi tereni: prvo uživo, pa naredne
-      const allSoon = ALL
-        .slice()
-        .sort((a,b)=>{
-          const pa = (a.status==="uzivo") ? 0 : (a.status==="ceka" ? 1 : 2);
-          const pb = (b.status==="uzivo") ? 0 : (b.status==="ceka" ? 1 : 2);
-          return (pa-pb) || sortByTime(a,b);
-        })
-        .slice(0,12);
-
-      el("tbAll").innerHTML = allSoon.length ? allSoon.map(r => `
-        <tr>
-          <td>${fmtTime(r.vreme)}</td>
-          <td>${r.teren ?? "—"}</td>
-          <td>${r.faza ?? ""}</td>
-          <td><b>${r.domacin ?? ""}</b> <span class="muted">vs</span> <b>${r.gost ?? ""}</b></td>
-          <td class="score">${scoreText(r)}</td>
-          <td>${tagStatus(r.status)}</td>
-        </tr>
-      `).join("") : `<tr><td colspan="6" class="muted">Nema utakmica.</td></tr>`;
+      `).join("");
     }
 
-    function startRotate(){
-      stopRotate();
-      rotateTimer = setInterval(()=>{
-        if(!rotateOn) return;
-        terenIndex = (terenIndex + 1) % TERENI.length;
-        render();
-      }, 10000); // 10 sekundi po terenu
-    }
-    function stopRotate(){
-      if(rotateTimer) clearInterval(rotateTimer);
-      rotateTimer = null;
-    }
+    function initFromURL(){
+      const p = getParams();
 
-    // Buttons
-    el("btnFS").addEventListener("click", async ()=>{
-      try{
-        if(!document.fullscreenElement) await document.documentElement.requestFullscreen();
-        else await document.exitFullscreen();
-      }catch(e){}
-    });
-    el("btnRotate").addEventListener("click", ()=>{
-      rotateOn = !rotateOn;
-      el("rotState").textContent = rotateOn ? "ON" : "OFF";
-      if(rotateOn) startRotate();
-    });
-    el("btnNext").addEventListener("click", ()=>{
-      rotateOn = false;
-      el("rotState").textContent = "OFF";
-      terenIndex = (terenIndex + 1) % TERENI.length;
-      render();
-    });
+      const teren = p.get("teren");
+      if(teren) currentTeren = teren;
+
+      const rotate = (p.get("rotate") || "on").toLowerCase();
+      rotateOn = rotate !== "off";
+
+      const i = parseInt(p.get("interval") || "", 10);
+      if(Number.isFinite(i) && i >= 5 && i <= 120) intervalSec = i;
+
+      const god = p.get("godiste");
+      if(god) godisteFilter = String(god);
+
+      updateHeader();
+    }
 
     // realtime
     sb.channel("matches-realtime-tv")
       .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => load())
       .subscribe();
 
-    // init
-    load();
-    startRotate();
+    el("btnRefresh").addEventListener("click", load);
 
-    // PWA SW register
-    if("serviceWorker" in navigator){
-      navigator.serviceWorker.register("./sw.js").catch(()=>{});
-    }
+    initFromURL();
+    load();
   </script>
 </body>
 </html>
