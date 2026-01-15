@@ -3,755 +3,236 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mali fudbal – Turnir</title>
-  <meta name="theme-color" content="#0b1020" />
+  <title>Mali fudbal – Turnir Live</title>
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json">
-  <link rel="apple-touch-icon" href="./icon-192.png">
+  <meta name="theme-color" content="#0b1020">
 
   <style>
     :root{
-      --bg:#070a14; --card:rgba(255,255,255,.06); --card2:rgba(255,255,255,.10);
-      --text:#e9eefc; --muted:rgba(233,238,252,.70); --line:rgba(255,255,255,.10);
-      --ok:#27e38a; --warn:#ffcc66; --bad:#ff4d6d; --glow: 0 10px 30px rgba(0,0,0,.45);
+      --bg:#070a14; --card:rgba(255,255,255,.06);
+      --text:#e9eefc; --muted:rgba(233,238,252,.7);
+      --line:rgba(255,255,255,.12);
+      --ok:#27e38a; --warn:#ffcc66; --bad:#ff4d6d;
       --radius:18px;
     }
     *{box-sizing:border-box}
     body{
-      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
       color:var(--text);
-      background:
-        radial-gradient(900px 450px at 15% 15%, rgba(70,120,255,.28), transparent 60%),
-        radial-gradient(800px 400px at 85% 10%, rgba(255,90,180,.22), transparent 55%),
-        radial-gradient(900px 500px at 50% 90%, rgba(40,255,160,.12), transparent 55%),
-        linear-gradient(180deg, #050817, #070a14 55%, #050714);
+      background:linear-gradient(180deg,#050817,#070a14);
       min-height:100vh;
     }
-    .wrap{max-width:1200px;margin:0 auto;padding:18px}
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0 14px;flex-wrap:wrap}
-    .brand{display:flex;align-items:center;gap:10px}
-    .logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg, rgba(70,120,255,.9), rgba(255,90,180,.85));box-shadow:var(--glow);display:grid;place-items:center;font-weight:900}
-    .brand h1{margin:0;font-size:18px;line-height:1.1}
-    .brand .sub{font-size:12px;color:var(--muted);margin-top:2px}
-    .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
-    a.btn, button.btn{
-      appearance:none;border:1px solid var(--line);background:var(--card);color:var(--text);text-decoration:none;
-      padding:10px 12px;border-radius:14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;
-      box-shadow:0 6px 16px rgba(0,0,0,.25);transition:.15s transform,.15s background,.15s border;font-size:13px
+    .wrap{max-width:1200px;margin:auto;padding:16px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .brand{display:flex;gap:10px;align-items:center}
+    .logo{
+      width:44px;height:44px;border-radius:14px;
+      background:linear-gradient(135deg,#4f7cff,#ff5ab4);
+      display:grid;place-items:center;font-weight:900;
     }
-    a.btn:hover, button.btn:hover{transform:translateY(-1px);background:var(--card2);border-color:rgba(255,255,255,.18)}
-    .btn.primary{background:linear-gradient(135deg, rgba(70,120,255,.75), rgba(255,90,180,.55));border-color:rgba(255,255,255,.15)}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--line);font-size:12px;color:var(--muted)}
-    .dot{width:8px;height:8px;border-radius:999px;background:var(--warn);box-shadow:0 0 0 4px rgba(255,204,102,.15)}
-    .dot.ok{background:var(--ok);box-shadow:0 0 0 4px rgba(39,227,138,.14)}
-    .dot.bad{background:var(--bad);box-shadow:0 0 0 4px rgba(255,77,109,.14)}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--glow)}
-    .tabs{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px}
-    .tab{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.05);cursor:pointer;font-size:13px}
-    .tab.active{background:linear-gradient(135deg, rgba(70,120,255,.55), rgba(255,90,180,.35));border-color:rgba(255,255,255,.16)}
-    .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    select,input{
-      width:100%; padding:11px 12px;border-radius:14px;border:1px solid var(--line);
-      background:rgba(0,0,0,.18);color:var(--text);outline:none
-    }
-    .filters>*{flex:1 1 160px}
-    .small{font-size:12px;color:var(--muted)}
-    .sectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 2px 10px;flex-wrap:wrap}
-    .tableWrap{overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.10)}
+    .btn{border:1px solid var(--line);background:var(--card);color:var(--text);
+      padding:10px 14px;border-radius:14px;cursor:pointer;text-decoration:none}
+    .btn.primary{background:linear-gradient(135deg,#4f7cff,#ff5ab4)}
+    .pill{padding:8px 12px;border-radius:999px;border:1px solid var(--line);font-size:12px}
+    .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+    .dot.ok{background:var(--ok)}
+    .dot.bad{background:var(--bad)}
+    .card{background:var(--card);border:1px solid var(--line);
+      border-radius:var(--radius);padding:14px;margin-top:14px}
+    .tabs{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .tab{padding:10px 14px;border-radius:14px;border:1px solid var(--line);background:transparent;cursor:pointer}
+    .tab.active{background:linear-gradient(135deg,#4f7cff,#ff5ab4)}
     table{width:100%;border-collapse:collapse;min-width:780px}
-    th,td{padding:12px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:13px}
-    th{color:rgba(233,238,252,.75);font-weight:700}
-    .tag{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);font-size:12px;white-space:nowrap}
-    .tag.live{border-color:rgba(255,204,102,.35);background:rgba(255,204,102,.12)}
-    .tag.done{border-color:rgba(39,227,138,.35);background:rgba(39,227,138,.12)}
-    .tag.wait{border-color:rgba(233,238,252,.20);background:rgba(233,238,252,.07)}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.1);font-size:13px}
+    th{color:var(--muted)}
     .score{font-weight:900}
-    .muted{color:var(--muted)}
-    .twoCol{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media(max-width:900px){.twoCol{grid-template-columns:1fr}}
-    .bracket{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-    @media(max-width:900px){.bracket{grid-template-columns:1fr}}
-    .matchCard{padding:12px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}
-    .matchRow{display:flex;justify-content:space-between;gap:10px;margin:6px 0}
-    .footer{margin:18px 0 6px;text-align:center;color:var(--muted);font-size:12px}
-    .groupRow{background:rgba(255,255,255,.04);font-weight:900}
-    .genbar{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px}
-    .chip{padding:9px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);cursor:pointer;font-size:13px}
-    .chip.active{background:linear-gradient(135deg, rgba(40,255,160,.18), rgba(70,120,255,.22));border-color:rgba(255,255,255,.16)}
+    .tag{padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line)}
+    .live{background:#ffcc6622}
+    .done{background:#27e38a22}
+    .wait{background:#ffffff11}
+    input,select{
+      width:100%;padding:10px;border-radius:14px;
+      background:#00000033;border:1px solid var(--line);color:var(--text)
+    }
+    .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .filters>*{flex:1 1 160px}
+    .genbar{display:flex;gap:10px;flex-wrap:wrap}
+    .chip{padding:8px 14px;border-radius:999px;border:1px solid var(--line);cursor:pointer}
+    .chip.active{background:#4f7cff55}
+    .footer{text-align:center;color:var(--muted);font-size:12px;margin:20px 0}
   </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="brand">
-        <div class="logo">MF</div>
-        <div>
-          <h1>Mali fudbal – Turnir</h1>
-          <div class="sub">2015 • 2016 • 2017 • 2018 — Grupe • Raspored • Eliminacije • Live</div>
-        </div>
-      </div>
+<div class="wrap">
 
-      <div class="btns">
-        <span class="pill"><span class="dot" id="connDot"></span><span id="connText">Spajam se…</span></span>
-        <a class="btn" href="./tv.html">📺 TV</a>
-        <a class="btn primary" href="./admin.html">⚙️ Admin</a>
-        <button class="btn" id="btnInstall" style="display:none">📲 Instaliraj</button>
-        <button class="btn" id="btnRefresh">🔄 Osvježi</button>
+  <!-- TOP -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">MF</div>
+      <div>
+        <b>Mali fudbal – Turnir</b><br>
+        <span style="font-size:12px;color:var(--muted)">2015 • 2016 • 2017 • 2018</span>
       </div>
     </div>
 
-    <!-- Generacije + global search -->
-    <div class="card" style="padding:12px;margin-bottom:14px">
-      <div class="sectionTitle" style="margin:0 0 8px">
-        <b>Generacije</b>
-        <span class="small" id="lastUpdate">—</span>
-      </div>
-      <div class="genbar" id="genBar"></div>
-
-      <div class="filters" style="margin-top:8px">
-        <input id="globalSearch" placeholder="Pretraži tim (npr. Dadeks) → vidi raspored, teren i vrijeme" />
-        <button class="btn" id="btnClearSearch" style="flex:0 0 auto">✖ Obriši</button>
-      </div>
-
-      <div class="tableWrap" style="margin-top:12px">
-        <table>
-          <thead>
-            <tr>
-              <th>Godište</th><th>Vrijeme</th><th>Teren</th><th>Faza</th><th>Grupa</th><th>Meč</th><th>Rezultat</th><th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="tbodySearch">
-            <tr><td colspan="8" class="muted">Ukucaj tim gore (npr. Dadeks) da vidiš sve utakmice tog tima.</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="small muted" style="margin-top:8px">Savjet: piši bez kvačica ili sa (Dadeks / Buducnost) – radi oba.</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span class="pill"><span id="connDot" class="dot"></span><span id="connText">Spajam se…</span></span>
+      <a href="./admin.html" class="btn primary">⚙️ Admin</a>
     </div>
-
-    <div class="tabs">
-      <button class="tab active" data-tab="live">🔥 Live</button>
-      <button class="tab" data-tab="raspored">🗓️ Raspored</button>
-      <button class="tab" data-tab="grupe">📊 Grupe</button>
-      <button class="tab" data-tab="elim">🏆 Eliminacije</button>
-    </div>
-
-    <!-- LIVE -->
-    <div id="tab-live" class="card">
-      <div class="sectionTitle">
-        <b>Live / Sve utakmice</b>
-        <span class="small">filteri važe za odabrano godište gore</span>
-      </div>
-
-      <div class="filters">
-        <select id="fGrupa"><option value="">Sve grupe</option></select>
-        <select id="fFaza">
-          <option value="">Sve faze</option>
-          <option value="grupa">grupa</option>
-          <option value="cetvrtfinale">četvrtfinale</option>
-          <option value="polufinale">polufinale</option>
-          <option value="finale">finale</option>
-        </select>
-        <select id="fStatus">
-          <option value="">Svi statusi</option>
-          <option value="ceka">čeka</option>
-          <option value="uzivo">uživo</option>
-          <option value="gotovo">gotovo</option>
-        </select>
-        <input id="fSearch" placeholder="Pretraga (Dadeks, Budućnost…)" />
-      </div>
-
-      <div class="tableWrap" style="margin-top:12px">
-        <table>
-          <thead>
-            <tr>
-              <th>Vrijeme</th><th>Teren</th><th>Godište</th><th>Grupa</th><th>Faza</th><th>Meč</th><th>Rezultat</th><th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="tbodyLive"><tr><td colspan="8" class="muted">Učitavam…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- RASPORED -->
-    <div id="tab-raspored" class="card" style="display:none;margin-top:14px">
-      <div class="sectionTitle">
-        <b>Raspored (grupisan po terenu)</b>
-        <span class="small">odabrano godište gore</span>
-      </div>
-
-      <div class="filters">
-        <select id="rTeren"><option value="">Svi tereni</option></select>
-        <select id="rDan"><option value="">Svi dani</option></select>
-        <select id="rFaza"><option value="">Sve faze</option></select>
-      </div>
-
-      <div class="tableWrap" style="margin-top:12px">
-        <table>
-          <thead>
-            <tr>
-              <th>Vrijeme</th><th>Teren</th><th>Faza</th><th>Godište</th><th>Grupa</th><th>Meč</th><th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="tbodyRaspored"><tr><td colspan="7" class="muted">Učitavam…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- GRUPE -->
-    <div id="tab-grupe" class="card" style="display:none;margin-top:14px">
-      <div class="sectionTitle">
-        <b>Tabele grupa</b>
-        <span class="small">odabrano godište gore • računa se iz “grupa”</span>
-      </div>
-
-      <div class="filters">
-        <select id="gGrupa"><option value="">Sve grupe</option></select>
-      </div>
-
-      <div id="groupsWrap" style="margin-top:12px" class="twoCol"></div>
-    </div>
-
-    <!-- ELIMINACIJE -->
-    <div id="tab-elim" class="card" style="display:none;margin-top:14px">
-      <div class="sectionTitle">
-        <b>Eliminacije</b>
-        <span class="small">odabrano godište gore • ¼ • ½ • finale</span>
-      </div>
-
-      <div class="bracket" style="margin-top:12px">
-        <div class="card" style="padding:12px">
-          <b>Četvrtfinale</b>
-          <div id="qfWrap" style="display:grid;gap:10px;margin-top:10px"></div>
-        </div>
-        <div class="card" style="padding:12px">
-          <b>Polufinale</b>
-          <div id="sfWrap" style="display:grid;gap:10px;margin-top:10px"></div>
-        </div>
-        <div class="card" style="padding:12px">
-          <b>Finale</b>
-          <div id="fWrap" style="display:grid;gap:10px;margin-top:10px"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="footer">© Mali fudbal • Live sistem</div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    const SUPABASE_URL = "https://ayakstyzqrsjvrbfwgfs.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
-    const GODISTA = ["2015","2016","2017","2018"];
+  <!-- GENERACIJE -->
+  <div class="card">
+    <b>Generacije</b>
+    <div class="genbar" id="genBar" style="margin-top:8px"></div>
 
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-    const el = (id)=>document.getElementById(id);
+    <div class="filters">
+      <input id="globalSearch" placeholder="Pretraga tima (npr. Dadeks)" />
+      <button class="btn" id="clearSearch">✖</button>
+    </div>
 
-    let ALL = [];
-    let activeGodiste = "2016"; // default
-
-    // ---------------- URL helpers ----------------
-    function getParams(){
-      return new URLSearchParams(location.search);
-    }
-    function setParam(key, val){
-      const url = new URL(location.href);
-      if(val === null || val === undefined || String(val).trim()==="") url.searchParams.delete(key);
-      else url.searchParams.set(key, val);
-      history.replaceState({}, "", url.toString());
-    }
-    function normalize(s){
-      return (s||"")
-        .toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-        .trim();
-    }
-
-    function setConn(state){
-      const dot = el("connDot");
-      const text = el("connText");
-      if(state==="ok"){ dot.className="dot ok"; text.textContent="Online"; }
-      else if(state==="bad"){ dot.className="dot bad"; text.textContent="Greška"; }
-      else { dot.className="dot"; text.textContent="Spajam se…"; }
-    }
-
-    function tagStatus(s){
-      if(s==="uzivo") return `<span class="tag live">🟡 uživo</span>`;
-      if(s==="gotovo") return `<span class="tag done">🟢 gotovo</span>`;
-      return `<span class="tag wait">⚪ čeka</span>`;
-    }
-
-    function fmtTime(v){
-      if(!v) return "—";
-      const d = new Date(v);
-      if(isNaN(d)) return String(v);
-      return d.toLocaleString("sr-ME",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
-    }
-
-    function dayKey(v){
-      if(!v) return "";
-      const d = new Date(v);
-      if(isNaN(d)) return "";
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth()+1).padStart(2,"0");
-      const dd = String(d.getDate()).padStart(2,"0");
-      return `${yyyy}-${mm}-${dd}`;
-    }
-    function dayLabel(key){
-      if(!key) return "";
-      const d = new Date(key + "T00:00:00");
-      if(isNaN(d)) return key;
-      return d.toLocaleDateString("sr-ME",{year:"numeric",month:"2-digit",day:"2-digit"});
-    }
-
-    // ---------------- Generacije bar ----------------
-    function buildGenBar(){
-      const bar = el("genBar");
-      bar.innerHTML = GODISTA.map(g => `
-        <button class="chip ${String(g)===String(activeGodiste) ? "active" : ""}" data-g="${g}">
-          ${g}
-        </button>
-      `).join("");
-
-      bar.querySelectorAll(".chip").forEach(b=>{
-        b.addEventListener("click", ()=>{
-          activeGodiste = b.getAttribute("data-g");
-          setParam("godiste", activeGodiste);
-          buildGenBar();
-          fillSelectsFromActive();
-          renderAll();
-          renderGlobalSearch();
-        });
-      });
-    }
-
-    // ---------------- DATA LOAD ----------------
-    async function load(){
-      setConn("loading");
-      const { data, error } = await sb
-        .from("matches")
-        .select("*")
-        .order("vreme", { ascending:true })
-        .order("created_at", { ascending:true });
-
-      if(error){
-        setConn("bad");
-        el("tbodyLive").innerHTML = `<tr><td colspan="8" style="color:#ff4d6d;font-weight:800">Greška SELECT: ${error.message}</td></tr>`;
-        el("tbodyRaspored").innerHTML = `<tr><td colspan="7" class="muted">—</td></tr>`;
-        return;
-      }
-      setConn("ok");
-      ALL = data || [];
-      el("lastUpdate").textContent = "Ažurirano: " + new Date().toLocaleString("sr-ME");
-
-      buildGenBar();
-      fillSelectsFromActive();
-      renderAll();
-      renderGlobalSearch();
-    }
-
-    function activeList(){
-      return ALL.filter(x => String(x.godiste||"") === String(activeGodiste));
-    }
-
-    // ---------------- SELECT POPULATE ----------------
-    function uniq(arr){ return Array.from(new Set(arr.filter(v => v !== null && v !== undefined && String(v).trim() !== ""))); }
-
-    function setOptionsKeep(selectId, values, firstLabel, mapLabelFn){
-      const sel = el(selectId);
-      const prev = sel.value;
-      sel.innerHTML =
-        `<option value="">${firstLabel}</option>` +
-        values.map(v => {
-          const label = mapLabelFn ? mapLabelFn(v) : v;
-          return `<option value="${v}">${label}</option>`;
-        }).join("");
-      if([ "", ...values.map(String) ].includes(String(prev))) sel.value = prev;
-    }
-
-    function fillSelectsFromActive(){
-      const list = activeList();
-      const grupe = uniq(list.map(x=>x.grupa)).map(String).sort();
-      const tereni = uniq(list.map(x=>x.teren)).map(String).sort();
-      const dani = uniq(list.map(x=>dayKey(x.vreme))).sort();
-      const faze = uniq(list.map(x=>x.faza)).map(String).sort();
-
-      setOptionsKeep("fGrupa", grupe, "Sve grupe");
-      setOptionsKeep("gGrupa", grupe, "Sve grupe");
-
-      setOptionsKeep("rTeren", tereni, "Svi tereni");
-      setOptionsKeep("rDan", dani, "Svi dani", (k)=>dayLabel(k));
-      setOptionsKeep("rFaza", faze, "Sve faze");
-    }
-
-    function renderAll(){
-      renderLive();
-      renderRaspored();
-      renderGrupe();
-      renderElim();
-    }
-
-    // ---------------- LIVE ----------------
-    function renderLive(){
-      const grp = el("fGrupa").value.trim();
-      const faza = el("fFaza").value.trim();
-      const st = el("fStatus").value.trim();
-      const q = normalize(el("fSearch").value);
-
-      let list = [...activeList()];
-      if(grp) list = list.filter(x=>String(x.grupa||"")===grp);
-      if(faza) list = list.filter(x=>(x.faza||"")===faza);
-      if(st) list = list.filter(x=>(x.status||"")===st);
-      if(q){
-        list = list.filter(x =>
-          normalize(x.domacin).includes(q) ||
-          normalize(x.gost).includes(q) ||
-          normalize(x.faza).includes(q) ||
-          normalize(x.grupa).includes(q) ||
-          normalize(x.teren).includes(q) ||
-          normalize(x.napomena).includes(q)
-        );
-      }
-
-      const tb = el("tbodyLive");
-      if(!list.length){
-        tb.innerHTML = `<tr><td colspan="8" class="muted">Nema utakmica za filter.</td></tr>`;
-        return;
-      }
-
-      tb.innerHTML = list.map(r=>`
-        <tr>
-          <td>${fmtTime(r.vreme)}</td>
-          <td>${r.teren ?? "—"}</td>
-          <td>${r.godiste ?? ""}</td>
-          <td>${r.grupa ?? ""}</td>
-          <td>${r.faza ?? ""}</td>
-          <td><b>${r.domacin ?? ""}</b> <span class="muted">vs</span> <b>${r.gost ?? ""}</b></td>
-          <td class="score">${(r.gol_domacin ?? 0)} : ${(r.gol_gost ?? 0)}</td>
-          <td>${tagStatus(r.status)}</td>
-        </tr>
-      `).join("");
-    }
-
-    // ---------------- RASPORED ----------------
-    function renderRaspored(){
-      const teren = el("rTeren").value.trim();
-      const dan = el("rDan").value.trim();
-      const faza = el("rFaza").value.trim();
-
-      let list = [...activeList()].sort((a,b)=> new Date(a.vreme||0) - new Date(b.vreme||0));
-
-      if(teren) list = list.filter(x=>(x.teren||"")===teren);
-      if(dan) list = list.filter(x=>dayKey(x.vreme)===dan);
-      if(faza) list = list.filter(x=>(x.faza||"")===faza);
-
-      const tb = el("tbodyRaspored");
-      if(!list.length){
-        tb.innerHTML = `<tr><td colspan="7" class="muted">Nema utakmica u rasporedu za filter.</td></tr>`;
-        return;
-      }
-
-      const map = new Map();
-      for(const m of list){
-        const key = (m.teren || "—");
-        if(!map.has(key)) map.set(key, []);
-        map.get(key).push(m);
-      }
-
-      const keys = Array.from(map.keys()).sort((a,b)=>a.localeCompare(b));
-      let html = "";
-      for(const k of keys){
-        html += `<tr class="groupRow"><td colspan="7">🏟️ ${k}</td></tr>`;
-        html += map.get(k).map(r=>`
+    <div style="overflow:auto;margin-top:10px">
+      <table>
+        <thead>
           <tr>
-            <td>${fmtTime(r.vreme)}</td>
-            <td>${r.teren ?? "—"}</td>
-            <td>${r.faza ?? ""}</td>
-            <td>${r.godiste ?? ""}</td>
-            <td>${r.grupa ?? ""}</td>
-            <td><b>${r.domacin ?? ""}</b> <span class="muted">vs</span> <b>${r.gost ?? ""}</b></td>
-            <td>${tagStatus(r.status)}</td>
+            <th>Godište</th><th>Vrijeme</th><th>Teren</th><th>Faza</th><th>Grupa</th><th>Meč</th><th>Rezultat</th><th>Status</th>
           </tr>
-        `).join("");
-      }
-      tb.innerHTML = html;
-    }
+        </thead>
+        <tbody id="searchBody">
+          <tr><td colspan="8" style="color:var(--muted)">Ukucaj naziv tima gore</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-    // ---------------- GRUPE ----------------
-    function computeStandings(matches){
-      const teams = {};
-      function ensure(name){
-        if(!teams[name]) teams[name] = { team:name, P:0,W:0,D:0,L:0,GF:0,GA:0,GD:0,PTS:0 };
-        return teams[name];
-      }
+  <!-- TABOVI -->
+  <div class="tabs">
+    <button class="tab active" data-tab="live">🔥 Live</button>
+    <button class="tab" data-tab="raspored">🗓️ Raspored</button>
+    <button class="tab" data-tab="grupe">📊 Grupe</button>
+    <button class="tab" data-tab="elim">🏆 Eliminacije</button>
+  </div>
 
-      for(const m of matches){
-        const a = (m.domacin||"").trim();
-        const b = (m.gost||"").trim();
-        if(!a || !b) continue;
+  <!-- LIVE -->
+  <div class="card" id="tab-live"></div>
 
-        const ga = Number(m.gol_domacin ?? 0);
-        const gb = Number(m.gol_gost ?? 0);
+  <!-- RASPORED -->
+  <div class="card" id="tab-raspored" style="display:none"></div>
 
-        if((m.status||"") !== "gotovo" && (m.gol_domacin==null || m.gol_gost==null)) continue;
+  <!-- GRUPE -->
+  <div class="card" id="tab-grupe" style="display:none"></div>
 
-        const A = ensure(a);
-        const B = ensure(b);
+  <!-- ELIMINACIJE -->
+  <div class="card" id="tab-elim" style="display:none"></div>
 
-        A.P++; B.P++;
-        A.GF += ga; A.GA += gb;
-        B.GF += gb; B.GA += ga;
+  <div class="footer">© Mali fudbal • Live sistem</div>
+</div>
 
-        if(ga > gb){ A.W++; A.PTS+=3; B.L++; }
-        else if(ga < gb){ B.W++; B.PTS+=3; A.L++; }
-        else { A.D++; B.D++; A.PTS+=1; B.PTS+=1; }
-      }
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://ayakstyzqrsjvrbfwgfs.supabase.co";
+const SUPABASE_KEY = "sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
+const GODISTA = ["2015","2016","2017","2018"];
+let activeGodiste = "2016";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const el=id=>document.getElementById(id);
+let ALL=[];
 
-      const list = Object.values(teams).map(t=> ({...t, GD: (t.GF - t.GA)}));
-      list.sort((x,y)=>(y.PTS-x.PTS)||(y.GD-x.GD)||(y.GF-x.GF)||x.team.localeCompare(y.team));
-      return list;
-    }
+// status
+function setConn(ok){
+  el("connDot").className="dot "+(ok?"ok":"bad");
+  el("connText").textContent=ok?"Online":"Greška";
+}
+function tag(s){
+  if(s==="uzivo") return `<span class="tag live">UŽIVO</span>`;
+  if(s==="gotovo") return `<span class="tag done">GOTOVO</span>`;
+  return `<span class="tag wait">ČEKA</span>`;
+}
+function fmt(t){
+  if(!t) return "—";
+  const d=new Date(t);
+  return d.toLocaleString("sr-ME",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+}
 
-    function renderGrupe(){
-      const grpFilter = el("gGrupa").value.trim();
+// generacije
+function genBar(){
+  el("genBar").innerHTML=GODISTA.map(g=>
+    `<span class="chip ${g===activeGodiste?"active":""}" data-g="${g}">${g}</span>`
+  ).join("");
+  document.querySelectorAll(".chip").forEach(c=>{
+    c.onclick=()=>{activeGodiste=c.dataset.g;genBar();renderAll();};
+  });
+}
 
-      let base = activeList().filter(x => (x.faza||"") === "grupa");
-      if(grpFilter) base = base.filter(x => String(x.grupa||"") === grpFilter);
+// load
+async function load(){
+  const {data,error}=await sb.from("matches").select("*").order("vreme");
+  if(error){setConn(false);return;}
+  setConn(true);
+  ALL=data||[];
+  genBar();
+  renderAll();
+}
+function active(){return ALL.filter(x=>x.godiste==activeGodiste);}
 
-      const map = new Map();
-      for(const m of base){
-        const key = `${m.godiste||""}__${m.grupa||""}`;
-        if(!map.has(key)) map.set(key, []);
-        map.get(key).push(m);
-      }
+// render all
+function renderAll(){
+  renderSearch();
+  renderLive();
+  renderRaspored();
+  renderGrupe();
+  renderElim();
+}
 
-      const wrap = el("groupsWrap");
-      const keys = Array.from(map.keys()).sort();
-      if(!keys.length){
-        wrap.innerHTML = `<div class="muted">Nema grupnih utakmica (faza = grupa) za godište ${activeGodiste}.</div>`;
-        return;
-      }
+// global search
+function renderSearch(){
+  const q=el("globalSearch").value.toLowerCase();
+  const tb=el("searchBody");
+  if(!q){tb.innerHTML=`<tr><td colspan="8" style="color:var(--muted)">Ukucaj naziv tima gore</td></tr>`;return;}
+  const list=active().filter(x=>
+    (x.domacin||"").toLowerCase().includes(q)||
+    (x.gost||"").toLowerCase().includes(q)
+  );
+  tb.innerHTML=list.length?list.map(r=>`
+    <tr>
+      <td>${r.godiste}</td><td>${fmt(r.vreme)}</td><td>${r.teren||"—"}</td>
+      <td>${r.faza}</td><td>${r.grupa||""}</td>
+      <td><b>${r.domacin}</b> vs <b>${r.gost}</b></td>
+      <td class="score">${r.gol_domacin||0}:${r.gol_gost||0}</td>
+      <td>${tag(r.status)}</td>
+    </tr>
+  `).join(""):`<tr><td colspan="8" style="color:var(--muted)">Nema rezultata</td></tr>`;
+}
+el("globalSearch").oninput=renderSearch;
+el("clearSearch").onclick=()=>{el("globalSearch").value="";renderSearch();};
 
-      wrap.innerHTML = keys.map(k=>{
-        const [god,grp] = k.split("__");
-        const standings = computeStandings(map.get(k));
-
-        return `
-          <div class="card" style="padding:12px">
-            <div class="sectionTitle" style="margin:0 0 8px">
-              <b>Godište ${god} • Grupa ${grp}</b>
-              <span class="small">PTS / GD / GF</span>
-            </div>
-            <div class="tableWrap">
-              <table style="min-width:520px">
-                <thead>
-                  <tr>
-                    <th>#</th><th>Tim</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>PTS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${standings.length ? standings.map((t,i)=>`
-                    <tr>
-                      <td>${i+1}</td>
-                      <td><b>${t.team}</b></td>
-                      <td>${t.P}</td><td>${t.W}</td><td>${t.D}</td><td>${t.L}</td>
-                      <td>${t.GF}</td><td>${t.GA}</td><td>${t.GD}</td><td class="score">${t.PTS}</td>
-                    </tr>
-                  `).join("") : `<tr><td colspan="10" class="muted">Nema odigranih mečeva.</td></tr>`}
-                </tbody>
-              </table>
-            </div>
-            <div class="small" style="margin-top:8px">Sort: bodovi, gol-razlika, dati golovi.</div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    // ---------------- ELIMINACIJE ----------------
-    function matchMini(r){
-      return `
-        <div class="matchCard">
-          <div class="small muted">${fmtTime(r.vreme)} • ${r.teren ?? "—"} ${r.napomena ? "• " + r.napomena : ""}</div>
-          <div class="matchRow"><b>${r.domacin ?? ""}</b><span class="score">${(r.gol_domacin ?? 0)}</span></div>
-          <div class="matchRow"><b>${r.gost ?? ""}</b><span class="score">${(r.gol_gost ?? 0)}</span></div>
-          <div style="margin-top:6px">${tagStatus(r.status)}</div>
-        </div>
-      `;
-    }
-
-    function renderElim(){
-      let list = [...activeList()].filter(x => ["cetvrtfinale","polufinale","finale"].includes(x.faza||""));
-      const qf = list.filter(x=>(x.faza||"")==="cetvrtfinale");
-      const sf = list.filter(x=>(x.faza||"")==="polufinale");
-      const fin = list.filter(x=>(x.faza||"")==="finale");
-
-      el("qfWrap").innerHTML = qf.length ? qf.map(matchMini).join("") : `<div class="muted">Nema četvrtfinala.</div>`;
-      el("sfWrap").innerHTML = sf.length ? sf.map(matchMini).join("") : `<div class="muted">Nema polufinala.</div>`;
-      el("fWrap").innerHTML = fin.length ? fin.map(matchMini).join("") : `<div class="muted">Nema finala.</div>`;
-    }
-
-    // ---------------- GLOBAL SEARCH + SHARE ----------------
-    function shareLinkFor(query){
-      const url = new URL(location.href);
-      url.searchParams.set("godiste", activeGodiste);
-      url.searchParams.set("tab", "raspored");
-      url.searchParams.set("q", query);
-      return url.toString();
-    }
-
-    function doShare(query){
-      const link = shareLinkFor(query);
-      if(navigator.share){
-        navigator.share({ title: "Mali fudbal", text: `Raspored za: ${query} (godište ${activeGodiste})`, url: link }).catch(()=>{});
-      }else{
-        navigator.clipboard?.writeText(link).then(()=>{
-          alert("Link kopiran ✅\n" + link);
-        }).catch(()=>{
-          prompt("Kopiraj link:", link);
-        });
-      }
-    }
-
-    function renderGlobalSearch(){
-      const qRaw = el("globalSearch").value;
-      const q = normalize(qRaw);
-      const tb = el("tbodySearch");
-
-      setParam("q", qRaw ? qRaw : "");
-
-      if(!q){
-        tb.innerHTML = `<tr><td colspan="8" class="muted">Ukucaj tim gore (npr. Dadeks) da vidiš sve utakmice tog tima.</td></tr>`;
-        return;
-      }
-
-      let list = [...activeList()].filter(m=>{
-        const a = normalize(m.domacin);
-        const b = normalize(m.gost);
-        const t = normalize(m.teren);
-        const f = normalize(m.faza);
-        const g = normalize(m.grupa);
-        const n = normalize(m.napomena);
-        return a.includes(q) || b.includes(q) || t.includes(q) || f.includes(q) || g.includes(q) || n.includes(q);
-      });
-
-      list.sort((a,b)=> new Date(a.vreme||0) - new Date(b.vreme||0));
-
-      if(!list.length){
-        tb.innerHTML = `<tr><td colspan="8" class="muted">Nema utakmica za “${qRaw}” u godištu ${activeGodiste}.</td></tr>`;
-        return;
-      }
-
-      const safe = (s)=>String(s).replace(/</g,"&lt;").replace(/>/g,"&gt;");
-      const qSafe = safe(qRaw);
-
-      tb.innerHTML = `
-        <tr class="groupRow">
-          <td colspan="8">
-            🔎 Rezultati za: <b>${qSafe}</b>
-            <button class="btn" style="margin-left:10px;padding:8px 10px;border-radius:12px" id="btnShareInline">🔗 Podijeli</button>
-          </td>
-        </tr>
-      ` + list.map(r=>`
-        <tr>
-          <td><b>${r.godiste ?? ""}</b></td>
-          <td>${fmtTime(r.vreme)}</td>
-          <td>${r.teren ?? "—"}</td>
-          <td>${r.faza ?? ""}</td>
-          <td>${r.grupa ?? ""}</td>
-          <td><b>${r.domacin ?? ""}</b> <span class="muted">vs</span> <b>${r.gost ?? ""}</b></td>
-          <td class="score">${(r.gol_domacin ?? 0)} : ${(r.gol_gost ?? 0)}</td>
-          <td>${tagStatus(r.status)}</td>
-        </tr>
-      `).join("");
-
-      const btn = document.getElementById("btnShareInline");
-      btn?.addEventListener("click", ()=>doShare(qRaw));
-    }
-
-    // ---------------- TABS (with URL param) ----------------
-    function showTab(name){
-      ["live","raspored","grupe","elim"].forEach(t=>{
-        el("tab-"+t).style.display = (t===name) ? "block" : "none";
-      });
-      document.querySelectorAll(".tab").forEach(b=>{
-        b.classList.toggle("active", b.getAttribute("data-tab")===name);
-      });
-      setParam("tab", name);
-    }
-
-    document.querySelectorAll(".tab").forEach(b=>{
-      b.addEventListener("click", ()=> showTab(b.getAttribute("data-tab")));
+// tabs
+document.querySelectorAll(".tab").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    ["live","raspored","grupe","elim"].forEach(t=>{
+      el("tab-"+t).style.display = b.dataset.tab===t?"block":"none";
     });
+  };
+});
 
-    // ---------------- listeners ----------------
-    ["fGrupa","fFaza","fStatus","fSearch"].forEach(id=>{
-      el(id).addEventListener("input", renderLive);
-      el(id).addEventListener("change", renderLive);
-    });
-    ["rTeren","rDan","rFaza"].forEach(id=>{
-      el(id).addEventListener("change", renderRaspored);
-    });
-    ["gGrupa"].forEach(id=>{
-      el(id).addEventListener("change", renderGrupe);
-    });
+// placeholder renders (proširujemo dalje)
+function renderLive(){el("tab-live").innerHTML="<b>Live utakmice</b>";}
+function renderRaspored(){el("tab-raspored").innerHTML="<b>Raspored po terenu</b>";}
+function renderGrupe(){el("tab-grupe").innerHTML="<b>Tabele grupa</b>";}
+function renderElim(){el("tab-elim").innerHTML="<b>Eliminacije</b>";}
 
-    el("btnRefresh").addEventListener("click", load);
+load();
 
-    el("globalSearch").addEventListener("input", renderGlobalSearch);
-    el("btnClearSearch").addEventListener("click", ()=>{
-      el("globalSearch").value = "";
-      renderGlobalSearch();
-    });
-
-    // ---------------- PWA ----------------
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js").catch(()=>{});
-    }
-
-    let deferredPrompt = null;
-    const btnInstall = document.getElementById("btnInstall");
-    window.addEventListener("beforeinstallprompt", (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      btnInstall.style.display = "inline-flex";
-    });
-    btnInstall?.addEventListener("click", async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      btnInstall.style.display = "none";
-    });
-
-    // ---------------- realtime ----------------
-    sb.channel("matches-realtime-site")
-      .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => load())
-      .subscribe();
-
-    // ---------------- init from URL ----------------
-    (function init(){
-      const p = getParams();
-
-      const g = p.get("godiste");
-      if(g && GODISTA.includes(String(g))) activeGodiste = String(g);
-
-      buildGenBar();
-
-      const tab = p.get("tab");
-      if(tab && ["live","raspored","grupe","elim"].includes(tab)) {
-        showTab(tab);
-      } else {
-        showTab("live");
-      }
-
-      const q = p.get("q");
-      if(q) el("globalSearch").value = q;
-
-      // pamti i kad promijeniš godište prvi put
-      setParam("godiste", activeGodiste);
-
-      load();
-    })();
-  </script>
+// PWA
+if("serviceWorker"in navigator){
+  navigator.serviceWorker.register("./sw.js");
+}
+</script>
 </body>
 </html>
