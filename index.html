@@ -218,7 +218,7 @@
     <div id="tab-elim" class="card" style="display:none;margin-top:14px">
       <div class="sectionTitle">
         <b>Nokaut</b>
-        <span class="small">odabrano godište gore • automatski se popunjava</span>
+        <span class="small">odabrano godište gore • automatski prikaz (admin potvrđuje)</span>
       </div>
 
       <div class="bracket" style="margin-top:12px">
@@ -237,7 +237,7 @@
       </div>
 
       <div class="small muted" style="margin-top:12px">
-        ⚠️ Nokaut mečevi ne smiju završiti neriješeno. Ako je 1:1, upiši pobjednika (npr. 2:1) ili dodaj penale (ako želiš – dodamo kolonu kasnije).
+        ⚠️ Nokaut mečevi ne smiju završiti neriješeno. Ako je 1:1, upiši pobjednika (npr. 2:1).
       </div>
     </div>
 
@@ -257,6 +257,29 @@
 
     let ALL = [];
     let activeGodiste = "2016";
+
+    // ===== Query params (tab + godiste) =====
+    function getQS(){
+      const p = new URLSearchParams(location.search);
+      return {
+        tab: (p.get("tab") || "").toLowerCase(),
+        godiste: (p.get("godiste") || "").trim()
+      };
+    }
+    function setQS(tabName){
+      const p = new URLSearchParams(location.search);
+      p.set("tab", tabName);
+      p.set("godiste", String(activeGodiste));
+      history.replaceState({}, "", location.pathname + "?" + p.toString());
+    }
+    function applyQS(){
+      const { tab, godiste } = getQS();
+      if (godiste && GODISTA.includes(String(godiste))) activeGodiste = String(godiste);
+
+      const map = { live:"live", raspored:"raspored", grupe:"grupe", elim:"elim", eliminacije:"elim", nokaut:"elim" };
+      const t = map[tab];
+      if (t) showTab(t);
+    }
 
     function setConn(state){
       const dot = el("connDot");
@@ -319,16 +342,23 @@
           fillSelectsFromActive();
           renderAll();
           renderGlobalSearch();
-          renderLockInfo();
+          setQS(currentTab());
         });
       });
+    }
+
+    function currentTab(){
+      const b = document.querySelector(".tab.active");
+      return b ? (b.getAttribute("data-tab") || "live") : "live";
     }
 
     function activeList(){
       return ALL.filter(x => String(x.godiste||"") === String(activeGodiste));
     }
 
-    function uniq(arr){ return Array.from(new Set(arr.filter(v => v !== null && v !== undefined && String(v).trim() !== ""))); }
+    function uniq(arr){
+      return Array.from(new Set(arr.filter(v => v !== null && v !== undefined && String(v).trim() !== "")));
+    }
 
     function setOptionsKeep(selectId, values, firstLabel, mapLabelFn){
       const sel = el(selectId);
@@ -357,7 +387,7 @@
       setOptionsKeep("rFaza", faze, "Sve faze");
     }
 
-    // STANDINGS
+    // ===== Standings =====
     function computeStandings(matches){
       const teams = {};
       function ensure(name){
@@ -370,7 +400,6 @@
         const b = (m.gost||"").trim();
         if(!a || !b) continue;
 
-        // računamo kad je gotovo ili ima rezultat
         const ga = Number(m.gol_domacin ?? 0);
         const gb = Number(m.gol_gost ?? 0);
         if((m.status||"") !== "gotovo" && (m.gol_domacin==null || m.gol_gost==null)) continue;
@@ -392,181 +421,21 @@
       return list;
     }
 
-    // WINNER (nokaut) – nema neriješeno
-    function winnerOf(m){
-      if((m.status||"") !== "gotovo") return null;
-      const a = (m.domacin||"").trim();
-      const b = (m.gost||"").trim();
-      if(!a || !b) return null;
-      const ga = Number(m.gol_domacin ?? 0);
-      const gb = Number(m.gol_gost ?? 0);
-      if(ga === gb) return null; // neriješeno = nema pobjednika
-      return ga > gb ? a : b;
-    }
-
-    // === A) AUTO NOKAUT (semis/final ili qf/sf/final) ===
-    // Pravilo:
-    // - Ako postoje grupe A i B (2 grupe) => pravi POLUFINALE (A1-B2, B1-A2) + FINALE
-    // - Ako postoje A,B,C,D (4 grupe) => pravi ČETVRTFINALE + POLUFINALE + FINALE
-    async function autoGenerateKnockout(){
-      const toInsert = [];
-
-      for(const god of GODISTA){
-        const baseGroup = ALL.filter(m => String(m.godiste||"")===String(god) && (m.faza||"")==="grupa");
-
-        // grupiši po grupi
-        const groups = {};
-        for(const m of baseGroup){
-          const g = String(m.grupa||"").trim();
-          if(!g) continue;
-          if(!groups[g]) groups[g] = [];
-          groups[g].push(m);
-        }
-
-        const groupNames = Object.keys(groups).sort(); // npr A,B ili A,B,C,D
-        if(groupNames.length < 2) continue;
-
-        // standings per grupa
-        const standingsByGroup = {};
-        for(const g of groupNames){
-          standingsByGroup[g] = computeStandings(groups[g]);
-        }
-
-        // mora imati top2 u svakoj grupi koja učestvuje
-        const allHave2 = groupNames.every(g => (standingsByGroup[g]||[]).length >= 2);
-        if(!allHave2) continue;
-
-        // helper: provjeri postoji li meč
-        const existsMatch = (faza, domacin, gost) => ALL.some(x =>
-          String(x.godiste||"")===String(god) &&
-          (x.faza||"")===faza &&
-          (x.domacin||"")===domacin &&
-          (x.gost||"")===gost
-        );
-
-        // 2 grupe => POLUFINALE + FINALE
-        if(groupNames.length === 2){
-          const A = standingsByGroup[groupNames[0]];
-          const B = standingsByGroup[groupNames[1]];
-          const sf = [
-            { faza:"polufinale", home:A[0].team, away:B[1].team, slot:1 },
-            { faza:"polufinale", home:B[0].team, away:A[1].team, slot:2 }
-          ];
-
-          for(const m of sf){
-            if(!existsMatch(m.faza, m.home, m.away)){
-              toInsert.push({
-                godiste: god,
-                faza: m.faza,
-                grupa: "",
-                domacin: m.home,
-                gost: m.away,
-                status: "ceka",
-                auto_generated: true,
-                napomena: `SF${m.slot}`
-              });
-            }
-          }
-
-          // finale kada oba SF gotovo i imaju pobjednika
-          const sfMatches = ALL.filter(x => String(x.godiste||"")===String(god) && (x.faza||"")==="polufinale");
-          const w1 = winnerOf(sfMatches.find(x => (x.napomena||"") === "SF1") || sfMatches[0]);
-          const w2 = winnerOf(sfMatches.find(x => (x.napomena||"") === "SF2") || sfMatches[1]);
-          if(w1 && w2){
-            if(!existsMatch("finale", w1, w2)){
-              toInsert.push({
-                godiste: god,
-                faza: "finale",
-                grupa: "",
-                domacin: w1,
-                gost: w2,
-                status: "ceka",
-                auto_generated: true,
-                napomena: "FINAL"
-              });
-            }
-          }
-        }
-
-        // 4 grupe => ČETVRTFINALE + POLUFINALE + FINALE
-        if(groupNames.length >= 4){
-          // uzimamo A,B,C,D (prve 4 po sortu)
-          const G = groupNames.slice(0,4);
-          const A = standingsByGroup[G[0]], B = standingsByGroup[G[1]], C = standingsByGroup[G[2]], D = standingsByGroup[G[3]];
-
-          const qf = [
-            { home:A[0].team, away:B[1].team, slot:1 },
-            { home:B[0].team, away:A[1].team, slot:2 },
-            { home:C[0].team, away:D[1].team, slot:3 },
-            { home:D[0].team, away:C[1].team, slot:4 }
-          ];
-
-          for(const m of qf){
-            if(!existsMatch("cetvrtfinale", m.home, m.away)){
-              toInsert.push({
-                godiste: god, faza:"cetvrtfinale", grupa:"",
-                domacin:m.home, gost:m.away, status:"ceka",
-                auto_generated:true, napomena:`QF${m.slot}`
-              });
-            }
-          }
-
-          // polufinale: pobjednik QF1 vs pobjednik QF2, pobjednik QF3 vs pobjednik QF4
-          const qfMatches = ALL.filter(x => String(x.godiste||"")===String(god) && (x.faza||"")==="cetvrtfinale");
-          const getByNote = (note) => qfMatches.find(x => (x.napomena||"")===note);
-
-          const wQ1 = winnerOf(getByNote("QF1"));
-          const wQ2 = winnerOf(getByNote("QF2"));
-          const wQ3 = winnerOf(getByNote("QF3"));
-          const wQ4 = winnerOf(getByNote("QF4"));
-
-          if(wQ1 && wQ2 && !existsMatch("polufinale", wQ1, wQ2)){
-            toInsert.push({ godiste:god, faza:"polufinale", grupa:"", domacin:wQ1, gost:wQ2, status:"ceka", auto_generated:true, napomena:"SF1" });
-          }
-          if(wQ3 && wQ4 && !existsMatch("polufinale", wQ3, wQ4)){
-            toInsert.push({ godiste:god, faza:"polufinale", grupa:"", domacin:wQ3, gost:wQ4, status:"ceka", auto_generated:true, napomena:"SF2" });
-          }
-
-          // finale: pobjednici SF1 i SF2
-          const sfMatches = ALL.filter(x => String(x.godiste||"")===String(god) && (x.faza||"")==="polufinale");
-          const wS1 = winnerOf(sfMatches.find(x => (x.napomena||"")==="SF1"));
-          const wS2 = winnerOf(sfMatches.find(x => (x.napomena||"")==="SF2"));
-
-          if(wS1 && wS2 && !existsMatch("finale", wS1, wS2)){
-            toInsert.push({ godiste:god, faza:"finale", grupa:"", domacin:wS1, gost:wS2, status:"ceka", auto_generated:true, napomena:"FINAL" });
-          }
-        }
-      }
-
-      if(toInsert.length){
-        // INSERT (ako RLS za insert je za authenticated, ovo radi kad si ulogovan u adminu)
-        // Ali index je public, pa može fail insert -> zato hvatamo grešku i samo prikazujemo.
-        const { error } = await sb.from("matches").insert(toInsert);
-        // Ako insert padne zbog RLS (public), nema veze — sistem će se generisati kad admin otvori admin.html i osvježi.
-        // Ali ako ti je INSERT policy otvoren, onda radi i ovdje.
-        if(!error){
-          // osvježi lokalno (ne čekamo realtime)
-          await load();
-        }
-      }
-    }
-
+    // ===== Lock info =====
     function groupsLockedForActive(){
-      // zaključano ako postoji bilo koji nokaut meč za aktivno godište
       return ALL.some(m =>
         String(m.godiste||"")===String(activeGodiste) &&
         ["cetvrtfinale","polufinale","finale"].includes(m.faza||"")
       );
     }
-
     function renderLockInfo(){
       const locked = groupsLockedForActive();
       el("lockInfo").innerHTML = locked
-        ? `<span class="tag done">🔒 Grupe zaključane (počeo nokaut)</span>`
+        ? `<span class="tag done">🔒 Grupe zaključane (postoji nokaut)</span>`
         : `<span class="tag wait">🔓 Grupe otvorene</span>`;
     }
 
-    // LIVE
+    // ===== Live =====
     function renderLive(){
       const grp = el("fGrupa").value.trim();
       const faza = el("fFaza").value.trim();
@@ -608,21 +477,25 @@
       `).join("");
     }
 
-    // RASPORED (po terenu)
+    // ===== Raspored =====
     function renderRaspored(){
       const teren = el("rTeren").value.trim();
       const dan = el("rDan").value.trim();
       const faza = el("rFaza").value.trim();
 
-      let list = [...activeList()].sort((a,b)=> new Date(a.vreme||0) - new Date(b.vreme||0));
+      let list = [...activeList()].sort((a,b)=> {
+        const ta = a.vreme ? new Date(a.vreme).getTime() : 0;
+        const tb = b.vreme ? new Date(b.vreme).getTime() : 0;
+        return ta - tb;
+      });
 
       if(teren) list = list.filter(x=>(x.teren||"")===teren);
       if(dan) list = list.filter(x=>dayKey(x.vreme)===dan);
       if(faza) list = list.filter(x=>(x.faza||"")===faza);
 
-      const tb = el("tbodyRaspored");
+      const tbod = el("tbodyRaspored");
       if(!list.length){
-        tb.innerHTML = `<tr><td colspan="7" class="muted">Nema utakmica u rasporedu za filter.</td></tr>`;
+        tbod.innerHTML = `<tr><td colspan="7" class="muted">Nema utakmica u rasporedu za filter.</td></tr>`;
         return;
       }
 
@@ -649,10 +522,10 @@
           </tr>
         `).join("");
       }
-      tb.innerHTML = html;
+      tbod.innerHTML = html;
     }
 
-    // GRUPE
+    // ===== Grupe =====
     function renderGrupe(){
       const grpFilter = el("gGrupa").value.trim();
       let base = activeList().filter(x => (x.faza||"") === "grupa");
@@ -707,7 +580,7 @@
       }).join("");
     }
 
-    // NOKAUT render
+    // ===== Nokaut (READ from DB + fallback preview) =====
     function matchMini(r){
       return `
         <div class="matchCard">
@@ -719,18 +592,85 @@
       `;
     }
 
+    function winnerOf(m){
+      if(!m) return null;
+      if((m.status||"") !== "gotovo") return null;
+      const a = (m.domacin||"").trim();
+      const b = (m.gost||"").trim();
+      if(!a || !b) return null;
+      const ga = Number(m.gol_domacin ?? 0);
+      const gb = Number(m.gol_gost ?? 0);
+      if(ga === gb) return null;
+      return ga > gb ? a : b;
+    }
+
+    function buildKnockoutPreviewForActive(){
+      // pravi preview samo iz tabela grupa (ne upisuje u bazu)
+      const baseGroup = activeList().filter(m => (m.faza||"")==="grupa");
+
+      const groups = {};
+      for(const m of baseGroup){
+        const g = String(m.grupa||"").trim();
+        if(!g) continue;
+        if(!groups[g]) groups[g] = [];
+        groups[g].push(m);
+      }
+
+      const groupNames = Object.keys(groups).sort(); // A,B ili A,B,C,D
+      if(groupNames.length < 2) return { qf:[], sf:[], fin:[] };
+
+      const standingsByGroup = {};
+      for(const g of groupNames) standingsByGroup[g] = computeStandings(groups[g]);
+
+      const allHave2 = groupNames.every(g => (standingsByGroup[g]||[]).length >= 2);
+      if(!allHave2) return { qf:[], sf:[], fin:[] };
+
+      // 2 grupe => samo SF + FINAL
+      if(groupNames.length === 2){
+        const A = standingsByGroup[groupNames[0]];
+        const B = standingsByGroup[groupNames[1]];
+        const sf = [
+          { faza:"polufinale", domacin:A[0].team, gost:B[1].team, napomena:"SF1", status:"ceka" },
+          { faza:"polufinale", domacin:B[0].team, gost:A[1].team, napomena:"SF2", status:"ceka" }
+        ];
+        return { qf:[], sf, fin:[] };
+      }
+
+      // 4 grupe => QF + SF + FINAL preview (SF/FINAL bez pobjednika dok nema rezultata)
+      const G = groupNames.slice(0,4);
+      const A = standingsByGroup[G[0]], B = standingsByGroup[G[1]], C = standingsByGroup[G[2]], D = standingsByGroup[G[3]];
+
+      const qf = [
+        { faza:"cetvrtfinale", domacin:A[0].team, gost:B[1].team, napomena:"QF1", status:"ceka" },
+        { faza:"cetvrtfinale", domacin:B[0].team, gost:A[1].team, napomena:"QF2", status:"ceka" },
+        { faza:"cetvrtfinale", domacin:C[0].team, gost:D[1].team, napomena:"QF3", status:"ceka" },
+        { faza:"cetvrtfinale", domacin:D[0].team, gost:C[1].team, napomena:"QF4", status:"ceka" }
+      ];
+
+      return { qf, sf:[], fin:[] };
+    }
+
     function renderElim(){
-      let list = [...activeList()].filter(x => ["cetvrtfinale","polufinale","finale"].includes(x.faza||""));
+      const list = [...activeList()].filter(x => ["cetvrtfinale","polufinale","finale"].includes(x.faza||""));
       const qf = list.filter(x=>(x.faza||"")==="cetvrtfinale");
       const sf = list.filter(x=>(x.faza||"")==="polufinale");
       const fin = list.filter(x=>(x.faza||"")==="finale");
+
+      // Ako nema nokauta u bazi, prikaži preview iz grupa
+      if(!qf.length && !sf.length && !fin.length){
+        const prev = buildKnockoutPreviewForActive();
+        el("qfWrap").innerHTML = prev.qf.length ? prev.qf.map(matchMini).join("") : `<div class="muted">Nema četvrtfinala (još).</div>`;
+        el("sfWrap").innerHTML = prev.sf.length ? prev.sf.map(matchMini).join("") : `<div class="muted">Nema polufinala (preview kad su 2 grupe).</div>`;
+        el("fWrap").innerHTML = `<div class="muted">Finale se pojavi kad admin potvrdi / unese nokaut.</div>`;
+        return;
+      }
 
       el("qfWrap").innerHTML = qf.length ? qf.map(matchMini).join("") : `<div class="muted">Nema četvrtfinala.</div>`;
       el("sfWrap").innerHTML = sf.length ? sf.map(matchMini).join("") : `<div class="muted">Nema polufinala.</div>`;
       el("fWrap").innerHTML = fin.length ? fin.map(matchMini).join("") : `<div class="muted">Nema finala.</div>`;
     }
 
-    // GLOBAL SEARCH (u okviru aktivnog godišta)
+    // ===== Global search =====
     function renderGlobalSearch(){
       const q = normalize(el("globalSearch").value);
       const tb = el("tbodySearch");
@@ -750,7 +690,11 @@
         return a.includes(q) || b.includes(q) || t.includes(q) || f.includes(q) || g.includes(q) || n.includes(q);
       });
 
-      list.sort((a,b)=> new Date(a.vreme||0) - new Date(b.vreme||0));
+      list.sort((a,b)=> {
+        const ta = a.vreme ? new Date(a.vreme).getTime() : 0;
+        const tb2 = b.vreme ? new Date(b.vreme).getTime() : 0;
+        return ta - tb2;
+      });
 
       if(!list.length){
         tb.innerHTML = `<tr><td colspan="8" class="muted">Nema utakmica za “${el("globalSearch").value}” u godištu ${activeGodiste}.</td></tr>`;
@@ -779,7 +723,7 @@
       renderElim();
     }
 
-    // TABS
+    // ===== Tabs =====
     function showTab(name){
       ["live","raspored","grupe","elim"].forEach(t=>{
         el("tab-"+t).style.display = (t===name) ? "block" : "none";
@@ -787,12 +731,14 @@
       document.querySelectorAll(".tab").forEach(b=>{
         b.classList.toggle("active", b.getAttribute("data-tab")===name);
       });
+      setQS(name);
     }
+
     document.querySelectorAll(".tab").forEach(b=>{
       b.addEventListener("click", ()=> showTab(b.getAttribute("data-tab")));
     });
 
-    // Listeners
+    // ===== Listeners =====
     ["fGrupa","fFaza","fStatus","fSearch"].forEach(id=>{
       el(id).addEventListener("input", renderLive);
       el(id).addEventListener("change", renderLive);
@@ -812,7 +758,7 @@
       renderGlobalSearch();
     });
 
-    // INIT/LOAD
+    // ===== Load =====
     async function load(){
       setConn("loading");
       const { data, error } = await sb
@@ -831,19 +777,22 @@
       ALL = data || [];
       el("lastUpdate").textContent = "Ažurirano: " + new Date().toLocaleString("sr-ME");
 
+      applyQS();
       buildGenBar();
       fillSelectsFromActive();
       renderAll();
       renderGlobalSearch();
-
-      // A) pokušaj automatskog generisanja nokauta
-      // (ako INSERT nije dozvoljen public, generiše se kad admin otvori admin.html)
-      await autoGenerateKnockout();
     }
 
-    // realtime refresh
+    // ===== Realtime (debounce) =====
+    let rtTimer = null;
+    function scheduleReload(){
+      clearTimeout(rtTimer);
+      rtTimer = setTimeout(()=>load(), 300);
+    }
+
     sb.channel("matches-realtime-site")
-      .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => load())
+      .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, scheduleReload)
       .subscribe();
 
     load();
