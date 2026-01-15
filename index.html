@@ -3,8 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mali fudbal – Live</title>
+  <title>Mali fudbal – Turnir</title>
   <meta name="theme-color" content="#0b1020" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
   <style>
     :root{
       --bg:#070a14; --card:rgba(255,255,255,.06); --card2:rgba(255,255,255,.10);
@@ -89,12 +94,14 @@
 
       <div class="btns">
         <span class="pill"><span class="dot" id="connDot"></span><span id="connText">Spajam se…</span></span>
+        <a class="btn" href="./tv.html">📺 TV</a>
         <a class="btn primary" href="./admin.html">⚙️ Admin</a>
+        <button class="btn" id="btnInstall" style="display:none">📲 Instaliraj</button>
         <button class="btn" id="btnRefresh">🔄 Osvježi</button>
       </div>
     </div>
 
-    <!-- Generacije: “zasebno” -->
+    <!-- Generacije + global search -->
     <div class="card" style="padding:12px;margin-bottom:14px">
       <div class="sectionTitle" style="margin:0 0 8px">
         <b>Generacije</b>
@@ -102,7 +109,6 @@
       </div>
       <div class="genbar" id="genBar"></div>
 
-      <!-- Globalna pretraga tima -->
       <div class="filters" style="margin-top:8px">
         <input id="globalSearch" placeholder="Pretraži tim (npr. Dadeks) → vidi raspored, teren i vrijeme" />
         <button class="btn" id="btnClearSearch" style="flex:0 0 auto">✖ Obriši</button>
@@ -282,7 +288,6 @@
     }
 
     function normalize(s){
-      // radi i sa/bez kvačica (Budućnost/Buducnost)
       return (s||"")
         .toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
@@ -304,7 +309,6 @@
           buildGenBar();
           fillSelectsFromActive();
           renderAll();
-          // ako ima global search tekst – osvježi rezultate i za novu generaciju
           renderGlobalSearch();
         });
       });
@@ -369,7 +373,6 @@
       setOptionsKeep("rFaza", faze, "Sve faze");
     }
 
-    // ---------- RENDER ALL ----------
     function renderAll(){
       renderLive();
       renderRaspored();
@@ -576,7 +579,7 @@
       el("fWrap").innerHTML = fin.length ? fin.map(matchMini).join("") : `<div class="muted">Nema finala.</div>`;
     }
 
-    // ---------- GLOBAL SEARCH (Dadeks => sve utakmice + teren/vrijeme) ----------
+    // ---------- GLOBAL SEARCH ----------
     function renderGlobalSearch(){
       const q = normalize(el("globalSearch").value);
       const tb = el("tbodySearch");
@@ -586,7 +589,6 @@
         return;
       }
 
-      // pretraga je “pametna”: traži u domacin/gost + napomena/teren/faza
       let list = [...activeList()].filter(m=>{
         const a = normalize(m.domacin);
         const b = normalize(m.gost);
@@ -645,15 +647,31 @@
 
     el("btnRefresh").addEventListener("click", load);
 
-    el("globalSearch").addEventListener("input", ()=>{
-      renderGlobalSearch();
-      // odmah prebaci usera na Live tab da vidi sistem radi (opciono)
-      // showTab("live");
-    });
-
+    el("globalSearch").addEventListener("input", renderGlobalSearch);
     el("btnClearSearch").addEventListener("click", ()=>{
       el("globalSearch").value = "";
       renderGlobalSearch();
+    });
+
+    // PWA: Service Worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    }
+
+    // PWA: Install prompt
+    let deferredPrompt = null;
+    const btnInstall = document.getElementById("btnInstall");
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      btnInstall.style.display = "inline-flex";
+    });
+    btnInstall?.addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      btnInstall.style.display = "none";
     });
 
     // realtime
@@ -661,7 +679,12 @@
       .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => load())
       .subscribe();
 
-    load();
+    // init
+    (function init(){
+      // default godište: prvo iz liste, ali možeš promijenit
+      activeGodiste = GODISTA.includes(activeGodiste) ? activeGodiste : GODISTA[0];
+      load();
+    })();
   </script>
 </body>
 </html>
