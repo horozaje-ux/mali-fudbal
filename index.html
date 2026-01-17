@@ -73,55 +73,49 @@
     .matchCard{padding:12px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}
     .matchRow{display:flex;justify-content:space-between;gap:10px;margin:6px 0}
     .footer{margin:18px 0 6px;text-align:center;color:var(--muted);font-size:12px}
-    .groupRow{background:rgba(255,255,255,.04);font-weight:900}
     .genbar{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px}
     .chip{padding:9px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);cursor:pointer;font-size:13px}
     .chip.active{background:linear-gradient(135deg, rgba(40,255,160,.18), rgba(70,120,255,.22));border-color:rgba(255,255,255,.16)}
 
-    /* ===== Sponsor footer (ISPRAVLJENO) ===== */
-.sponsors-footer{
-  margin: 18px 0 6px;
-  padding: 14px 0 6px;
-  border-top: 1px solid rgba(255,255,255,.08);
-  text-align:center;
-}
-.sponsors-wrap{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:12px;
-  flex-wrap:wrap;
-}
-.sponsor-label{
-  font-size:12px;
-  letter-spacing:1px;
-  color: rgba(233,238,252,.55);
-}
-
-/* badge */
-.sponsor-badge{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width: 220px;
-  height: 64px;
-  padding: 8px 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.92);
-  border: 1px solid rgba(255,255,255,.22);
-  box-shadow:0 10px 22px rgba(0,0,0,.25);
-  text-decoration:none;
-  overflow:hidden;
-}
-
-/* ključno: zoom, jer slika ima veliki “prazan” prostor */
-.sponsor-logo{
-  height: 140px;      /* namjerno veće od badge-a */
-  width: auto;
-  transform: scale(1.15);
-  display:block;
-}
-
+    /* ===== Sponsor footer (ispravljeno, vidljivo) ===== */
+    .sponsors-footer{
+      margin: 18px 0 6px;
+      padding: 14px 0 6px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      text-align:center;
+    }
+    .sponsors-wrap{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .sponsor-label{
+      font-size:12px;
+      letter-spacing:1px;
+      color: rgba(233,238,252,.55);
+    }
+    .sponsor-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width: 220px;
+      height: 64px;
+      padding: 8px 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(255,255,255,.22);
+      box-shadow:0 10px 22px rgba(0,0,0,.25);
+      text-decoration:none;
+      overflow:hidden;
+    }
+    .sponsor-logo{
+      height: 140px;      /* namjerno veće od badge-a */
+      width: auto;
+      transform: scale(1.15);
+      display:block;
+    }
   </style>
 </head>
 
@@ -220,10 +214,10 @@
       </div>
     </div>
 
-    <!-- RASPORED -->
+    <!-- RASPORED (PROSTO: bez grupisanja po terenu) -->
     <div id="tab-raspored" class="card" style="display:none;margin-top:14px">
       <div class="sectionTitle">
-        <b>Raspored (po terenu)</b>
+        <b>Raspored</b>
         <span class="small">odabrano godište gore</span>
       </div>
 
@@ -237,10 +231,10 @@
         <table>
           <thead>
             <tr>
-              <th>Vrijeme</th><th>Teren</th><th>Faza</th><th>Godište</th><th>Grupa</th><th>Meč</th><th>Status</th>
+              <th>Vrijeme</th><th>Teren</th><th>Faza</th><th>Grupa</th><th>Meč</th><th>Status</th>
             </tr>
           </thead>
-          <tbody id="tbodyRaspored"><tr><td colspan="7" class="muted">Učitavam…</td></tr></tbody>
+          <tbody id="tbodyRaspored"><tr><td colspan="6" class="muted">Učitavam…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -291,9 +285,7 @@
       <div class="sponsors-wrap">
         <span class="sponsor-label">SPONZOR</span>
         <a class="sponsor-badge" href="https://sansabet.com" target="_blank" rel="noopener">
-  <img class="sponsor-logo" src="./1111111111111111111111111111111111111111111111.png?v=2" alt="Šansabet.com" />
-</a>
-
+          <img class="sponsor-logo" src="./1111111111111111111111111111111111111111111111.png?v=2" alt="Šansabet.com" />
         </a>
       </div>
       <div class="footer">© Mali fudbal • Live sistem</div>
@@ -533,7 +525,7 @@
       `).join("");
     }
 
-    // ===== Raspored =====
+    // ===== Raspored (prosto: jedna lista) =====
     function renderRaspored(){
       const teren = el("rTeren").value.trim();
       const dan = el("rDan").value.trim();
@@ -551,34 +543,20 @@
 
       const tbod = el("tbodyRaspored");
       if(!list.length){
-        tbod.innerHTML = `<tr><td colspan="7" class="muted">Nema utakmica u rasporedu za filter.</td></tr>`;
+        tbod.innerHTML = `<tr><td colspan="6" class="muted">Nema utakmica u rasporedu za filter.</td></tr>`;
         return;
       }
 
-      const map = new Map();
-      for(const m of list){
-        const key = (m.teren || "—");
-        if(!map.has(key)) map.set(key, []);
-        map.get(key).push(m);
-      }
-
-      const keys = Array.from(map.keys()).sort((a,b)=>a.localeCompare(b));
-      let html = "";
-      for(const k of keys){
-        html += `<tr class="groupRow"><td colspan="7">🏟️ ${k}</td></tr>`;
-        html += map.get(k).map(r=>`
-          <tr>
-            <td>${fmtTime(r.vreme)}</td>
-            <td>${r.teren ?? "—"}</td>
-            <td>${r.faza ?? ""}</td>
-            <td>${r.godiste ?? ""}</td>
-            <td>${r.grupa ?? ""}</td>
-            <td><b>${r.domacin ?? ""}</b> <span class="muted">vs</span> <b>${r.gost ?? ""}</b></td>
-            <td>${tagStatus(r.status)}</td>
-          </tr>
-        `).join("");
-      }
-      tbod.innerHTML = html;
+      tbod.innerHTML = list.map(r=>`
+        <tr>
+          <td>${fmtTime(r.vreme)}</td>
+          <td>${r.teren ?? "—"}</td>
+          <td>${r.faza ?? ""}</td>
+          <td>${r.grupa ?? ""}</td>
+          <td><b>${r.domacin ?? ""}</b> <span class="muted">vs</span> <b>${r.gost ?? ""}</b></td>
+          <td>${tagStatus(r.status)}</td>
+        </tr>
+      `).join("");
     }
 
     // ===== Grupe =====
@@ -648,20 +626,7 @@
       `;
     }
 
-    function winnerOf(m){
-      if(!m) return null;
-      if((m.status||"") !== "gotovo") return null;
-      const a = (m.domacin||"").trim();
-      const b = (m.gost||"").trim();
-      if(!a || !b) return null;
-      const ga = Number(m.gol_domacin ?? 0);
-      const gb = Number(m.gol_gost ?? 0);
-      if(ga === gb) return null;
-      return ga > gb ? a : b;
-    }
-
     function buildKnockoutPreviewForActive(){
-      // pravi preview samo iz tabela grupa (ne upisuje u bazu)
       const baseGroup = activeList().filter(m => (m.faza||"")==="grupa");
 
       const groups = {};
@@ -672,7 +637,7 @@
         groups[g].push(m);
       }
 
-      const groupNames = Object.keys(groups).sort(); // A,B ili A,B,C,D
+      const groupNames = Object.keys(groups).sort();
       if(groupNames.length < 2) return { qf:[], sf:[], fin:[] };
 
       const standingsByGroup = {};
@@ -681,7 +646,6 @@
       const allHave2 = groupNames.every(g => (standingsByGroup[g]||[]).length >= 2);
       if(!allHave2) return { qf:[], sf:[], fin:[] };
 
-      // 2 grupe => samo SF + FINAL
       if(groupNames.length === 2){
         const A = standingsByGroup[groupNames[0]];
         const B = standingsByGroup[groupNames[1]];
@@ -692,7 +656,6 @@
         return { qf:[], sf, fin:[] };
       }
 
-      // 4 grupe => QF + SF + FINAL preview (SF/FINAL bez pobjednika dok nema rezultata)
       const G = groupNames.slice(0,4);
       const A = standingsByGroup[G[0]], B = standingsByGroup[G[1]], C = standingsByGroup[G[2]], D = standingsByGroup[G[3]];
 
@@ -712,7 +675,6 @@
       const sf = list.filter(x=>(x.faza||"")==="polufinale");
       const fin = list.filter(x=>(x.faza||"")==="finale");
 
-      // Ako nema nokauta u bazi, prikaži preview iz grupa
       if(!qf.length && !sf.length && !fin.length){
         const prev = buildKnockoutPreviewForActive();
         el("qfWrap").innerHTML = prev.qf.length ? prev.qf.map(matchMini).join("") : `<div class="muted">Nema četvrtfinala (još).</div>`;
@@ -773,7 +735,6 @@
 
     function renderAll(){
       renderLockInfo();
-     _hook
       renderLive();
       renderRaspored();
       renderGrupe();
