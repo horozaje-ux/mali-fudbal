@@ -78,7 +78,7 @@
     .chip{padding:9px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);cursor:pointer;font-size:13px}
     .chip.active{background:linear-gradient(135deg, rgba(40,255,160,.18), rgba(70,120,255,.22));border-color:rgba(255,255,255,.16)}
 
-    /* ===== Sponsor footer (DODATO) ===== */
+    /* ===== Sponsor footer (ISPRAVLJENO) ===== */
     .sponsors-footer{
       margin: 18px 0 6px;
       padding: 14px 0 6px;
@@ -91,22 +91,33 @@
       justify-content:center;
       gap:12px;
       flex-wrap:wrap;
-      opacity:.92;
+      opacity:.95;
     }
     .sponsor-label{
       font-size:12px;
       letter-spacing:1px;
       color: rgba(233,238,252,.55);
     }
-    .sponsor-logo{
-      height: 26px;
-      width:auto;
-      filter: grayscale(100%);
-      opacity:.95;
-      transition: transform .2s ease, filter .2s ease, opacity .2s ease;
+    .sponsor-badge{
+      display:inline-flex;
+      align-items:center;
+      padding:8px 12px;
+      border-radius:14px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow:0 10px 22px rgba(0,0,0,.25);
+      text-decoration:none;
     }
-    .sponsor-logo:hover{
-      filter: grayscale(0%);
+    .sponsor-logo{
+      height: 34px;            /* veće */
+      width:auto;
+      display:block;
+      /* da se vidi na tamnoj pozadini */
+      filter: invert(1) brightness(1.15) contrast(1.05);
+      opacity:.98;
+      transition: transform .2s ease, opacity .2s ease;
+    }
+    .sponsor-badge:hover .sponsor-logo{
       opacity:1;
       transform: translateY(-1px) scale(1.03);
     }
@@ -274,11 +285,11 @@
       </div>
     </div>
 
-    <!-- ===== Sponsor + Footer (ZAMIJENJENO) ===== -->
+    <!-- ===== Sponsor + Footer ===== -->
     <footer class="sponsors-footer">
       <div class="sponsors-wrap">
         <span class="sponsor-label">SPONZOR</span>
-        <a href="https://sansabet.com" target="_blank" rel="noopener">
+        <a class="sponsor-badge" href="https://sansabet.com" target="_blank" rel="noopener">
           <img class="sponsor-logo" src="./sansabet.png" alt="Šansabet.com" />
         </a>
       </div>
@@ -759,6 +770,7 @@
 
     function renderAll(){
       renderLockInfo();
+     _hook
       renderLive();
       renderRaspored();
       renderGrupe();
