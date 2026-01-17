@@ -77,6 +77,39 @@
     .genbar{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px}
     .chip{padding:9px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);cursor:pointer;font-size:13px}
     .chip.active{background:linear-gradient(135deg, rgba(40,255,160,.18), rgba(70,120,255,.22));border-color:rgba(255,255,255,.16)}
+
+    /* ===== Sponsor footer (DODATO) ===== */
+    .sponsors-footer{
+      margin: 18px 0 6px;
+      padding: 14px 0 6px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      text-align:center;
+    }
+    .sponsors-wrap{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      flex-wrap:wrap;
+      opacity:.92;
+    }
+    .sponsor-label{
+      font-size:12px;
+      letter-spacing:1px;
+      color: rgba(233,238,252,.55);
+    }
+    .sponsor-logo{
+      height: 26px;
+      width:auto;
+      filter: grayscale(100%);
+      opacity:.95;
+      transition: transform .2s ease, filter .2s ease, opacity .2s ease;
+    }
+    .sponsor-logo:hover{
+      filter: grayscale(0%);
+      opacity:1;
+      transform: translateY(-1px) scale(1.03);
+    }
   </style>
 </head>
 
@@ -241,7 +274,16 @@
       </div>
     </div>
 
-    <div class="footer">© Mali fudbal • Live sistem</div>
+    <!-- ===== Sponsor + Footer (ZAMIJENJENO) ===== -->
+    <footer class="sponsors-footer">
+      <div class="sponsors-wrap">
+        <span class="sponsor-label">SPONZOR</span>
+        <a href="https://sansabet.com" target="_blank" rel="noopener">
+          <img class="sponsor-logo" src="./sansabet.png" alt="Šansabet.com" />
+        </a>
+      </div>
+      <div class="footer">© Mali fudbal • Live sistem</div>
+    </footer>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
