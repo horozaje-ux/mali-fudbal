@@ -79,48 +79,49 @@
     .chip.active{background:linear-gradient(135deg, rgba(40,255,160,.18), rgba(70,120,255,.22));border-color:rgba(255,255,255,.16)}
 
     /* ===== Sponsor footer (ISPRAVLJENO) ===== */
-    .sponsors-footer{
-      margin: 18px 0 6px;
-      padding: 14px 0 6px;
-      border-top: 1px solid rgba(255,255,255,.08);
-      text-align:center;
-    }
-    .sponsors-wrap{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:12px;
-      flex-wrap:wrap;
-      opacity:.95;
-    }
-    .sponsor-label{
-      font-size:12px;
-      letter-spacing:1px;
-      color: rgba(233,238,252,.55);
-    }
-    .sponsor-badge{
-      display:inline-flex;
-      align-items:center;
-      padding:8px 12px;
-      border-radius:14px;
-      background: rgba(255,255,255,.10);
-      border: 1px solid rgba(255,255,255,.14);
-      box-shadow:0 10px 22px rgba(0,0,0,.25);
-      text-decoration:none;
-    }
-    .sponsor-logo{
-      height: 34px;            /* veće */
-      width:auto;
-      display:block;
-      /* da se vidi na tamnoj pozadini */
-      filter: invert(1) brightness(1.15) contrast(1.05);
-      opacity:.98;
-      transition: transform .2s ease, opacity .2s ease;
-    }
-    .sponsor-badge:hover .sponsor-logo{
-      opacity:1;
-      transform: translateY(-1px) scale(1.03);
-    }
+.sponsors-footer{
+  margin: 18px 0 6px;
+  padding: 14px 0 6px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  text-align:center;
+}
+.sponsors-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.sponsor-label{
+  font-size:12px;
+  letter-spacing:1px;
+  color: rgba(233,238,252,.55);
+}
+
+/* badge */
+.sponsor-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width: 220px;
+  height: 64px;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(255,255,255,.22);
+  box-shadow:0 10px 22px rgba(0,0,0,.25);
+  text-decoration:none;
+  overflow:hidden;
+}
+
+/* ključno: zoom, jer slika ima veliki “prazan” prostor */
+.sponsor-logo{
+  height: 140px;      /* namjerno veće od badge-a */
+  width: auto;
+  transform: scale(1.15);
+  display:block;
+}
+
   </style>
 </head>
 
@@ -290,7 +291,8 @@
       <div class="sponsors-wrap">
         <span class="sponsor-label">SPONZOR</span>
         <a class="sponsor-badge" href="https://sansabet.com" target="_blank" rel="noopener">
-          <img class="sponsor-logo" src="./1111111111111111111111111111111111111111111111.png?v=1" alt="Šansabet.com" />
+  <img class="sponsor-logo" src="./1111111111111111111111111111111111111111111111.png?v=2" alt="Šansabet.com" />
+</a>
 
         </a>
       </div>
