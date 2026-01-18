@@ -1080,7 +1080,7 @@
 
     // ===== Tabs =====
     function showTab(name){
-      ["live","raspored","grupe","elim"].forEach(t=>{
+      ["live","raspored","grupe","elim","stats"].forEach(t=>{
         el("tab-"+t).style.display = (t===name) ? "block" : "none";
       });
       document.querySelectorAll(".tab").forEach(b=>{
@@ -1309,7 +1309,254 @@
         navigator.serviceWorker.register("./sw.js").catch(()=>{});
       });
     }
-  </script>
+  
+
+// ===== PRO FEATURES (inlined) =====
+
+// --- Favorites (local only) ---
+const FAV_KEY = "mf_fav_teams_v1";
+let favOnly = false;
+
+function getFavs(){
+  try{ return new Set(JSON.parse(localStorage.getItem(FAV_KEY)||"[]")); }catch(e){ return new Set(); }
+}
+function setFavs(set){
+  localStorage.setItem(FAV_KEY, JSON.stringify(Array.from(set)));
+}
+function isFav(team){
+  return getFavs().has(String(team||""));
+}
+function toggleFav(team){
+  const s = getFavs();
+  const t = String(team||"");
+  if(!t) return;
+  if(s.has(t)) s.delete(t); else s.add(t);
+  setFavs(s);
+  renderFavHint();
+}
+
+function renderFavHint(){
+  const s = getFavs();
+  const hint = el("favHint");
+  if(!hint) return;
+  if(!s.size){ hint.textContent = ""; return; }
+  hint.innerHTML = ` • ⭐ Favoriti: <b>${Array.from(s).slice(0,5).join(", ")}</b>${s.size>5 ? "…" : ""}`;
+}
+
+function favBtn(team){
+  const on = isFav(team);
+  return `<button class="btn" data-fav="${String(team||"")}" title="Favorit" style="padding:6px 10px;border-radius:12px;font-size:12px">${on ? "⭐" : "☆"}</button>`;
+}
+
+// Patch row renderers to include favorite buttons (domacin + gost)
+function withFavRow(htmlRow, dom, gost){
+  // Insert a small fav column at the end of "Meč" cell if present
+  // We keep layout stable: add buttons inside match cell.
+  const buttons = `<span style="float:right;display:inline-flex;gap:6px">${favBtn(dom)}${favBtn(gost)}</span>`;
+  return htmlRow.replace(/(<td[^>]*>\s*<b>[^<]*<\/b>\s*<span class="muted">vs<\/span>\s*<b>[^<]*<\/b>\s*)(<\/td>)/, `$1${buttons}$2`);
+}
+
+document.addEventListener("click", (e)=>{
+  const b = e.target.closest("[data-fav]");
+  if(!b) return;
+  const team = b.getAttribute("data-fav");
+  toggleFav(team);
+  // re-render current views to update stars
+  renderAll();
+  renderGlobalSearch();
+});
+
+// Fav-only toggle button
+if(el("btnFavOnly")){
+  el("btnFavOnly").addEventListener("click", ()=>{
+    favOnly = !favOnly;
+    el("btnFavOnly").classList.toggle("primary", favOnly);
+    el("btnFavOnly").textContent = favOnly ? "⭐ Favoriti: ON" : "⭐ Favoriti";
+    renderAll();
+    renderGlobalSearch();
+  });
+}
+
+// --- TV Mode improvements ---
+function isTvMode(){
+  return (new URLSearchParams(location.search).get("tv") === "1");
+}
+function applyTvMode(){
+  if(!isTvMode()) return;
+  document.documentElement.style.scrollBehavior = "smooth";
+  // auto switch to live tab
+  showTab("live");
+  // hide admin button on TV
+  const admin = document.querySelector('a[href="./admin.html"]');
+  if(admin) admin.style.display = "none";
+  // keep screen awake hint (best-effort)
+  try{
+    if("wakeLock" in navigator){
+      navigator.wakeLock.request("screen").catch(()=>{});
+    }
+  }catch(e){}
+  // auto refresh every 30s
+  setInterval(()=>load(), 30000);
+}
+applyTvMode();
+
+// --- Stats (Team aggregates) ---
+function buildTeamStats(list){
+  const m = {};
+  for(const r of list){
+    const a = (r.domacin||"").trim();
+    const b = (r.gost||"").trim();
+    if(!a || !b) continue;
+    const ga = Number(r.gol_domacin ?? 0);
+    const gb = Number(r.gol_gost ?? 0);
+    if((r.status||"") !== "gotovo" && (r.gol_domacin==null || r.gol_gost==null)) continue;
+
+    if(!m[a]) m[a] = {team:a, GF:0, GA:0, P:0, W:0,D:0,L:0};
+    if(!m[b]) m[b] = {team:b, GF:0, GA:0, P:0, W:0,D:0,L:0};
+
+    m[a].GF += ga; m[a].GA += gb; m[a].P++;
+    m[b].GF += gb; m[b].GA += ga; m[b].P++;
+
+    if(ga>gb){ m[a].W++; m[b].L++; }
+    else if(gb>ga){ m[b].W++; m[a].L++; }
+    else { m[a].D++; m[b].D++; }
+  }
+  const arr = Object.values(m).map(x=>({...x, GD:x.GF-x.GA}));
+  arr.sort((x,y)=>(y.GF-x.GF)||(y.GD-x.GD)||(y.W-x.W)||x.team.localeCompare(y.team));
+  return arr;
+}
+
+function renderStats(){
+  if(!el("tbodyTeamStats")) return;
+
+  const scope = el("sScope") ? el("sScope").value : "godiste";
+  const base = (scope==="sve") ? ALL : activeList();
+  const stats = buildTeamStats(base);
+
+  // fill team dropdown
+  if(el("sTeam")){
+    const teams = stats.map(x=>x.team);
+    const prev = el("sTeam").value;
+    el("sTeam").innerHTML = `<option value="">Svi timovi</option>` + teams.map(t=>`<option value="${t}">${t}</option>`).join("");
+    if(teams.includes(prev)) el("sTeam").value = prev;
+  }
+
+  const teamFilter = el("sTeam") ? el("sTeam").value : "";
+  const show = teamFilter ? stats.filter(x=>x.team===teamFilter) : stats.slice(0,25);
+
+  el("tbodyTeamStats").innerHTML = show.length ? show.map((t,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td><b>${t.team}</b></td>
+      <td class="score">${t.GF}</td>
+      <td>${t.GA}</td>
+      <td>${t.GD}</td>
+    </tr>
+  `).join("") : `<tr><td colspan="5" class="muted">Nema podataka.</td></tr>`;
+
+  // form for selected team
+  const formWrap = el("teamForm");
+  if(!formWrap) return;
+  if(!teamFilter){
+    formWrap.innerHTML = `<div class="muted">Izaberi tim gore da vidiš formu i poslednje mečeve.</div>`;
+    return;
+  }
+  const games = base
+    .filter(r => normalize(r.domacin)===normalize(teamFilter) || normalize(r.gost)===normalize(teamFilter))
+    .sort((a,b)=> (new Date(b.vreme||0).getTime()) - (new Date(a.vreme||0).getTime()))
+    .slice(0,10);
+
+  formWrap.innerHTML = games.map(g=>{
+    const opp = normalize(g.domacin)===normalize(teamFilter) ? g.gost : g.domacin;
+    const isHome = normalize(g.domacin)===normalize(teamFilter);
+    const gf = isHome ? Number(g.gol_domacin ?? 0) : Number(g.gol_gost ?? 0);
+    const ga = isHome ? Number(g.gol_gost ?? 0) : Number(g.gol_domacin ?? 0);
+    let res = "—";
+    if((g.status||"")==="gotovo"){
+      res = gf>ga ? "W" : (gf<ga ? "L" : "D");
+    }
+    return `
+      <div class="matchCard">
+        <div class="small muted">${fmtTime(g.vreme)} • ${g.faza||""} ${g.grupa?("• "+g.grupa):""}</div>
+        <div class="matchRow"><b>${teamFilter}</b><span class="score">${gf}</span></div>
+        <div class="matchRow"><b>${opp||""}</b><span class="score">${ga}</span></div>
+        <div style="margin-top:6px" class="tag ${res==="W"?"done":(res==="L"?"live":"wait")}">${res}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+// Hook stats renders to filters and load()
+if(el("sScope")) el("sScope").addEventListener("change", renderStats);
+if(el("sTeam")) el("sTeam").addEventListener("change", renderStats);
+
+// Override renderLive/renderRaspored/globalSearch to inject stars + apply favOnly
+const _renderLive = renderLive;
+renderLive = function(){
+  const before = el("fSearch").value;
+  _renderLive();
+  // apply favorite stars + favOnly
+  const tb = el("tbodyLive");
+  if(!tb) return;
+  if(favOnly){
+    const favs = getFavs();
+    Array.from(tb.querySelectorAll("tr")).forEach(tr=>{
+      const tds = tr.querySelectorAll("td");
+      if(tds.length<6) return;
+      const matchCell = tds[5].innerText || "";
+      const ok = Array.from(favs).some(f => matchCell.includes(f));
+      tr.style.display = ok ? "" : "none";
+    });
+  }
+  // inject stars
+  tb.innerHTML = tb.innerHTML.replace(/(<td><b>)([^<]*)(<\/b> <span class="muted">vs<\/span> <b>)([^<]*)(<\/b>)(<\/td>)/g,
+    (m,p1,a,p3,b,p5,p6)=> `${p1}${a}${p3}${b}${p5}<span style="float:right;display:inline-flex;gap:6px">${favBtn(a)}${favBtn(b)}</span>${p6}`
+  );
+};
+
+const _renderRaspored = renderRaspored;
+renderRaspored = function(){
+  _renderRaspored();
+  const tb = el("tbodyRaspored");
+  if(!tb) return;
+  if(favOnly){
+    const favs = getFavs();
+    Array.from(tb.querySelectorAll("tr")).forEach(tr=>{
+      const tds = tr.querySelectorAll("td");
+      if(tds.length<5) return;
+      const matchCell = tds[4].innerText || "";
+      const ok = Array.from(favs).some(f => matchCell.includes(f));
+      tr.style.display = ok ? "" : "none";
+    });
+  }
+  tb.innerHTML = tb.innerHTML.replace(/(<td><b>)([^<]*)(<\/b> <span class="muted">vs<\/span> <b>)([^<]*)(<\/b>)(<\/td>)/g,
+    (m,p1,a,p3,b,p5,p6)=> `${p1}${a}${p3}${b}${p5}<span style="float:right;display:inline-flex;gap:6px">${favBtn(a)}${favBtn(b)}</span>${p6}`
+  );
+};
+
+const _renderGlobalSearch = renderGlobalSearch;
+renderGlobalSearch = function(){
+  _renderGlobalSearch();
+  const tb = el("tbodySearch");
+  if(!tb) return;
+  tb.innerHTML = tb.innerHTML.replace(/(<td><b>)([^<]*)(<\/b> <span class="muted">vs<\/span> <b>)([^<]*)(<\/b>)(<\/td>)/g,
+    (m,p1,a,p3,b,p5,p6)=> `${p1}${a}${p3}${b}${p5}<span style="float:right;display:inline-flex;gap:6px">${favBtn(a)}${favBtn(b)}</span>${p6}`
+  );
+};
+
+// Patch renderAll to include stats + hints
+const _renderAll = renderAll;
+renderAll = function(){
+  _renderAll();
+  renderStats();
+  renderFavHint();
+};
+
+// Ensure hint is shown on startup
+renderFavHint();
+
+
+</script>
   <div class="toast" id="toast"></div>
 
   <div class="toast" id="toast"></div>
