@@ -313,7 +313,31 @@
 }
 .toast.show{display:block}
 
-  </style>
+  
+
+    /* ===== Timeline ===== */
+    .timeline{display:grid;gap:10px}
+    .dayHeader{position:sticky;top:0;z-index:2;background:rgba(7,10,20,.92);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px 12px;margin-top:6px}
+    .tItem{display:flex;gap:10px;align-items:stretch;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06);border-radius:16px;padding:12px}
+    .tTime{min-width:74px;font-weight:900}
+    .tMain{flex:1;min-width:0}
+    .tTeams{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .tMeta{margin-top:4px;color:rgba(233,238,252,.70);font-size:12px;display:flex;gap:10px;flex-wrap:wrap}
+    .tActions{display:flex;flex-direction:column;gap:8px;justify-content:center}
+    .iconBtn{appearance:none;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:var(--text);border-radius:12px;padding:8px 10px;cursor:pointer;font-size:12px}
+    .iconBtn:hover{background:rgba(255,255,255,.10)}
+
+    
+    .toast b{display:block;margin-bottom:2px}
+    .toast .small{color:rgba(233,238,252,.70)}
+
+    @media(max-width:520px){
+      .tItem{padding:10px}
+      .tTime{min-width:64px}
+      .tActions{flex-direction:row}
+      .iconBtn{padding:8px 9px}
+    }
+</style>
 </head>
 
 <body>
@@ -343,6 +367,7 @@
         <div class="k"><b id="kpiDone">—</b><span>Gotovo</span></div>
       </div>
       <div class="right">
+        <button class="btn" id="btnNotify">🔔 Obavijesti</button>
         <button class="btn" id="btnShare">🔗 Podijeli</button>
         <button class="btn" id="btnInstall" style="display:none">⬇️ Instaliraj</button>
       </div>
@@ -387,6 +412,7 @@
       <button class="tab" data-tab="raspored">🗓️ Raspored</button>
       <button class="tab" data-tab="grupe">📊 Grupe</button>
       <button class="tab" data-tab="elim">🏆 Nokaut</button>
+      <button class=\"tab\" data-tab=\"timeline\">🧭 Timeline</button>
     </div>
 
     
@@ -496,7 +522,36 @@
       </div>
     </div>
 
-    <!-- ===== Sponsor + Footer ===== -->
+    
+
+    <!-- TIMELINE -->
+    <div id="tab-timeline" class="card" style="display:none;margin-top:14px">
+      <div class="sectionTitle">
+        <b>Timeline (dan po dan)</b>
+        <span class="small">odabrano godište gore • najbrži pregled na telefonu</span>
+      </div>
+
+      <div class="filters">
+        <select id="tDan"><option value="">Svi dani</option></select>
+        <select id="tTeren"><option value="">Svi tereni</option></select>
+        <select id="tStatus">
+          <option value="">Svi statusi</option>
+          <option value="ceka">čeka</option>
+          <option value="uzivo">uživo</option>
+          <option value="gotovo">gotovo</option>
+        </select>
+        <input id="tSearch" placeholder="Pretraga (tim, grupa, faza…)" />
+      </div>
+
+      <div id="timelineWrap" class="timeline" style="margin-top:12px">
+        <div class="muted">Učitavam…</div>
+      </div>
+
+      <div class="small muted" style="margin-top:10px">
+        Savjet: Dodaj tim u ⭐ favoriti, pa uključi 🔔 obavijesti — dobijaš poruku kad krene uživo.
+      </div>
+    </div>
+<!-- ===== Sponsor + Footer ===== -->
     <footer class="sponsors-footer">
       <div class="sponsors-wrap">
         <span class="sponsor-label">SPONZOR</span>
@@ -520,6 +575,7 @@
     const el = (id)=>document.getElementById(id);
 
     let ALL = [];
+    let PREV_ALL = [];
     let activeGodiste = "2016";
 
     // ===== Query params (tab + godiste) =====
@@ -588,6 +644,113 @@
         .toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
         .trim();
+    }
+
+
+    // ===== UI: Toast =====
+    function toast(title, msg){
+      const t = el("toast");
+      if(!t) return;
+      t.innerHTML = `<b>${title||"Info"}</b><div class="small">${msg||""}</div>`;
+      t.classList.add("show");
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(()=>t.classList.remove("show"), 2600);
+    }
+
+    // ===== Notifications (local, bez backend push-a) =====
+    const NOTIF_KEY = "mf_notif_enabled_v1";
+    const NOTIF_SENT_KEY = "mf_notif_sent_v1";
+    function notifEnabled(){ return localStorage.getItem(NOTIF_KEY) === "1"; }
+    function setNotifEnabled(v){ localStorage.setItem(NOTIF_KEY, v?"1":"0"); }
+    function getNotifSent(){
+      try{ return new Set(JSON.parse(localStorage.getItem(NOTIF_SENT_KEY)||"[]")); }catch(e){ return new Set(); }
+    }
+    function saveNotifSent(set){ localStorage.setItem(NOTIF_SENT_KEY, JSON.stringify(Array.from(set).slice(-300))); }
+
+    async function enableNotifications(){
+      if(!('Notification' in window)) { toast('Obavijesti', 'Ovaj uređaj ne podržava notifikacije.'); return; }
+      const perm = await Notification.requestPermission();
+      if(perm === 'granted'){
+        setNotifEnabled(true);
+        toast('Obavijesti uključene', 'Javljam kad omiljeni tim krene uživo.');
+      }else{
+        setNotifEnabled(false);
+        toast('Obavijesti isključene', 'Dozvola nije odobrena.');
+      }
+      updateNotifyBtn();
+    }
+
+    function updateNotifyBtn(){
+      const b = el('btnNotify');
+      if(!b) return;
+      const on = notifEnabled() && ('Notification' in window) && Notification.permission === 'granted';
+      b.textContent = on ? '🔔 Obavijesti: ON' : '🔕 Obavijesti';
+    }
+
+    function maybeNotifyFavLive(prevList, nextList){
+      if(!notifEnabled()) return;
+      if(!('Notification' in window) || Notification.permission !== 'granted') return;
+      const favs = loadFavs ? loadFavs() : new Set();
+      if(!favs || favs.size===0) return;
+
+      const prevById = new Map((prevList||[]).map(m=>[m.id, m]));
+      const sent = getNotifSent();
+
+      for(const m of (nextList||[])){
+        if(!m || !m.id) continue;
+        const p = prevById.get(m.id);
+        const was = (p && (p.status||'')==='uzivo');
+        const now = ((m.status||'')==='uzivo');
+        if(!was && now && !sent.has(m.id)){
+          const a = (m.domacin||'').trim();
+          const b = (m.gost||'').trim();
+          const hit = favs.has(a) || favs.has(b);
+          if(hit){
+            const title = 'UŽIVO: ' + a + ' vs ' + b;
+            const body = `${String(m.godiste||'')} • ${m.teren||'—'} • ${fmtTime(m.vreme)}`;
+            try{ new Notification(title, { body }); }catch(e){}
+            toast('Uživo!', title);
+            sent.add(m.id);
+          }
+        }
+      }
+      saveNotifSent(sent);
+    }
+
+    // ===== Calendar (.ics) export =====
+    function downloadICS(match){
+      if(!match) return;
+      const start = match.vreme ? new Date(match.vreme) : new Date();
+      const end = new Date(start.getTime() + 20*60*1000);
+      const pad = (n)=>String(n).padStart(2,'0');
+      const fmt = (d)=> `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+      const uid = `mf-${match.id||Math.random().toString(16).slice(2)}@mali-fudbal`;
+      const title = `${(match.domacin||'')} vs ${(match.gost||'')}`.replace(/
+/g,' ');
+      const desc = `Godište: ${match.godiste||''}\nFaza: ${match.faza||''}\nGrupa: ${match.grupa||''}\nTeren: ${match.teren||''}`;
+      const ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//MF Turnir//Live//SR',
+        'CALSCALE:GREGORIAN',
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${fmt(new Date())}`,
+        `DTSTART:${fmt(start)}`,
+        `DTEND:${fmt(end)}`,
+        `SUMMARY:${title}`,
+        `DESCRIPTION:${desc}`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].join('\r\n');
+      const blob = new Blob([ics], { type:'text/calendar;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(match.godiste||'')}_${(match.faza||'')}_${(match.id||'mec')}.ics`.replace(/[^a-zA-Z0-9_\-\.]/g,'_');
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
     }
 
     // ===== Standings =====
@@ -874,6 +1037,102 @@
       el("fWrap").innerHTML = fin.length ? fin.map(matchMini).join("") : `<div class="muted">Nema finala.</div>`;
     }
 
+    // ===== Timeline =====
+    function renderTimeline(){
+      if(!el('timelineWrap')) return;
+      const day = (el('tDan')?.value||'').trim();
+      const teren = (el('tTeren')?.value||'').trim();
+      const st = (el('tStatus')?.value||'').trim();
+      const q = normalize(el('tSearch')?.value||'');
+
+      let list = [...activeList()].sort((a,b)=>{
+        const ta = a.vreme ? new Date(a.vreme).getTime() : 0;
+        const tb = b.vreme ? new Date(b.vreme).getTime() : 0;
+        return ta - tb;
+      });
+      if(day) list = list.filter(x=>dayKey(x.vreme)===day);
+      if(teren) list = list.filter(x=>(x.teren||'')===teren);
+      if(st) list = list.filter(x=>(x.status||'')===st);
+      if(q){
+        list = list.filter(x=>
+          normalize(x.domacin).includes(q) ||
+          normalize(x.gost).includes(q) ||
+          normalize(x.grupa).includes(q) ||
+          normalize(x.faza).includes(q) ||
+          normalize(x.teren).includes(q) ||
+          normalize(x.napomena).includes(q)
+        );
+      }
+
+      const wrap = el('timelineWrap');
+      if(!list.length){
+        wrap.innerHTML = `<div class="muted">Nema utakmica za filter.</div>`;
+        return;
+      }
+
+      // group by day
+      const by = new Map();
+      for(const m of list){
+        const k = dayKey(m.vreme) || '—';
+        if(!by.has(k)) by.set(k, []);
+        by.get(k).push(m);
+      }
+      const days = Array.from(by.keys()).sort();
+
+      const favs = loadFavs ? loadFavs() : new Set();
+      const star = (team)=> favs.has(team) ? '⭐' : '☆';
+
+      let html = '';
+      for(const d of days){
+        html += `<div class="dayHeader"><b>${d==='—'?'Bez vremena':dayLabel(d)}</b> <span class="small">• ${by.get(d).length} mečeva</span></div>`;
+        for(const r of by.get(d)){
+          const a = (r.domacin||'').trim();
+          const b = (r.gost||'').trim();
+          const meta = `${r.teren||'—'} • ${r.faza||''}${r.grupa?(' • Grupa '+r.grupa):''}`;
+          html += `
+            <div class="tItem">
+              <div class="tTime">${fmtTime(r.vreme).slice(-5)}</div>
+              <div class="tMain">
+                <div class="tTeams">${a} <span class="muted">vs</span> ${b}</div>
+                <div class="tMeta">
+                  <span class="tag wait">${meta}</span>
+                  <span>${tagStatus(r.status)}</span>
+                  <span class="score">${(r.gol_domacin ?? 0)} : ${(r.gol_gost ?? 0)}</span>
+                </div>
+              </div>
+              <div class="tActions">
+                <button class="iconBtn" data-fav="${a}" title="Favorit: ${a}">${star(a)}</button>
+                <button class="iconBtn" data-fav="${b}" title="Favorit: ${b}">${star(b)}</button>
+                <button class="iconBtn" data-ics="${r.id||''}" title="Dodaj u kalendar">📅</button>
+              </div>
+            </div>`;
+        }
+      }
+      wrap.innerHTML = html;
+
+      // handlers
+      wrap.querySelectorAll('[data-fav]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const team = btn.getAttribute('data-fav')||'';
+          if(!team) return;
+          if(typeof toggleFav === 'function'){
+            toggleFav(team);
+            renderTimeline();
+            renderFavUI?.();
+            toast('Favoriti', `Sačuvano: ${team}`);
+          }
+        });
+      });
+      wrap.querySelectorAll('[data-ics]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const id = btn.getAttribute('data-ics');
+          const m = activeList().find(x=>String(x.id||'')===String(id));
+          downloadICS(m);
+        });
+      });
+    }
+
+
     // ===== Global search =====
     function renderGlobalSearch(){
       const q = normalize(el("globalSearch").value);
@@ -931,7 +1190,7 @@
 
     // ===== Tabs =====
     function showTab(name){
-      ["live","raspored","grupe","elim","stats"].forEach(t=>{
+      ["live","raspored","grupe","elim","stats","timeline"].forEach(t=>{
         el("tab-"+t).style.display = (t===name) ? "block" : "none";
       });
       document.querySelectorAll(".tab").forEach(b=>{
@@ -955,6 +1214,17 @@
     ["gGrupa"].forEach(id=>{
       el(id).addEventListener("change", renderGrupe);
     });
+
+
+
+    // Timeline listeners
+    if(el('tDan')) el('tDan').addEventListener('change', renderTimeline);
+    if(el('tTeren')) el('tTeren').addEventListener('change', renderTimeline);
+    if(el('tStatus')) el('tStatus').addEventListener('change', renderTimeline);
+    if(el('tSearch')) el('tSearch').addEventListener('input', renderTimeline);
+
+    // Notifications
+    if(el('btnNotify')) el('btnNotify').addEventListener('click', enableNotifications);
 
     el("btnRefresh").addEventListener("click", load);
 
@@ -992,7 +1262,9 @@
       }
 
       setConn("ok");
+      PREV_ALL = ALL || [];
       ALL = data || [];
+      maybeNotifyFavLive(PREV_ALL, ALL);
       saveCache();
       el("lastUpdate").textContent = "Ažurirano: " + new Date().toLocaleString("sr-ME");
 
