@@ -725,8 +725,7 @@
       const pad = (n)=>String(n).padStart(2,'0');
       const fmt = (d)=> `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
       const uid = `mf-${match.id||Math.random().toString(16).slice(2)}@mali-fudbal`;
-      const title = `${(match.domacin||'')} vs ${(match.gost||'')}`.replace(/
-/g,' ');
+      const title = `${(match.domacin||'')} vs ${(match.gost||'')}`.replace(/\s+/g,' ').trim();
       const desc = `Godište: ${match.godiste||''}\nFaza: ${match.faza||''}\nGrupa: ${match.grupa||''}\nTeren: ${match.teren||''}`;
       const ics = [
         'BEGIN:VCALENDAR',
