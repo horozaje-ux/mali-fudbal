@@ -242,6 +242,74 @@
     .toast.show{display:block}
     .toast b{font-weight:900}
 
+  
+/* ===== Mobile enhancements ===== */
+@media (max-width: 760px){
+  .wrap{padding:12px}
+  table{min-width:0}
+  .tableWrap{overflow:visible;border:0}
+  .tableWrap table{display:none} /* hide big tables on phone */
+  .mobileList{display:grid;gap:10px}
+  .mCard{
+    border:1px solid rgba(255,255,255,.10);
+    background:rgba(255,255,255,.06);
+    border-radius:16px;
+    padding:12px;
+    box-shadow:0 10px 22px rgba(0,0,0,.22);
+  }
+  .mTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .mTeams{margin-top:8px;font-weight:900;line-height:1.25}
+  .mMeta{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px}
+  .mMeta .tag{padding:5px 9px;font-size:12px}
+  .mScore{font-weight:900;font-size:18px}
+  .tabs{position:sticky;top:8px;z-index:50;background:rgba(7,10,20,.55);backdrop-filter: blur(10px);
+        padding:10px;border-radius:18px;border:1px solid rgba(255,255,255,.10)}
+  .tab{flex:1 1 auto;justify-content:center}
+  .btns{gap:8px}
+  a.btn,button.btn{padding:9px 10px;border-radius:14px}
+  .brand .sub{display:none}
+}
+
+/* Quick actions row */
+.quickbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-top:10px}
+.quickbar .left{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.quickbar .right{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.kpi{display:flex;gap:10px;flex-wrap:wrap}
+.kpi .k{padding:10px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06)}
+.kpi .k b{display:block;font-size:16px}
+.kpi .k span{display:block;font-size:12px;color:rgba(233,238,252,.70)}
+
+/* Floating button */
+.fab{
+  position:fixed; right:14px; bottom:14px;
+  z-index:1000;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.10);
+  color:var(--text);
+  border-radius:999px;
+  padding:12px 14px;
+  box-shadow:0 14px 26px rgba(0,0,0,.35);
+  cursor:pointer;
+}
+.fab:hover{background:rgba(255,255,255,.14)}
+.fabRow{display:flex;gap:10px;align-items:center}
+
+/* Toast */
+.toast{
+  position:fixed; left:50%; transform:translateX(-50%);
+  bottom:70px; z-index:1100;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.35);
+  color:rgba(233,238,252,.92);
+  backdrop-filter: blur(10px);
+  box-shadow:0 12px 24px rgba(0,0,0,.35);
+  display:none;
+  max-width:92vw;
+}
+.toast.show{display:block}
+
   </style>
 </head>
 
@@ -264,6 +332,19 @@
         <button class="btn" id="btnRefresh">🔄 Osvježi</button>
       </div>
     </div>
+
+    <div class="quickbar">
+      <div class="left kpi" id="kpiBar" aria-live="polite">
+        <div class="k"><b id="kpiTotal">—</b><span>Utakmica</span></div>
+        <div class="k"><b id="kpiLive">—</b><span>Uživo</span></div>
+        <div class="k"><b id="kpiDone">—</b><span>Gotovo</span></div>
+      </div>
+      <div class="right">
+        <button class="btn" id="btnShare">🔗 Podijeli</button>
+        <button class="btn" id="btnInstall" style="display:none">⬇️ Instaliraj</button>
+      </div>
+    </div>
+
 
     <!-- Generacije + global search -->
     <div class="card" style="padding:12px;margin-bottom:14px">
@@ -291,6 +372,7 @@
           </tbody>
         </table>
       </div>
+      <div class="mobileList" id="mobile_tbodySearch"><div class="muted">Ukucaj tim gore da vidiš sve utakmice tog tima.</div></div>
 
       <div class="small muted" style="margin-top:8px">
         Napomena: pretraga radi i bez kvačica (Budućnost / Buducnost).
@@ -341,6 +423,7 @@
           <tbody id="tbodyLive"><tr><td colspan="8" class="muted">Učitavam…</td></tr></tbody>
         </table>
       </div>
+      <div class="mobileList" id="mobile_tbodyLive"><div class="muted">Učitavam…</div></div>
     </div>
 
     <!-- RASPORED (PROSTO: bez grupisanja po terenu) -->
@@ -366,6 +449,7 @@
           <tbody id="tbodyRaspored"><tr><td colspan="6" class="muted">Učitavam…</td></tr></tbody>
         </table>
       </div>
+      <div class="mobileList" id="mobile_tbodyRaspored"><div class="muted">Učitavam…</div></div>
     </div>
 
     <!-- GRUPE -->
@@ -725,6 +809,8 @@
 
 
       
+      // mobile cards
+      renderLiveMobile(list);
       // Sort (mobile-friendly): 
       // 1) uživo prvo
       // 2) zatim omiljeni timovi (i kad nijesu uživo)
@@ -750,6 +836,11 @@
         tb.innerHTML = `<tr><td colspan="8" class="muted">Nema utakmica za filter.</td></tr>`;
         return;
       }
+
+      tb.innerHTML = list.map
+
+      // mobile cards
+      renderSearchMobile(list);
 
       tb.innerHTML = list.map(r=>`
         <tr class="${isFavMatch(r) ? 'rowFav' : ''}">
@@ -780,6 +871,10 @@
       if(teren) list = list.filter(x=>(x.teren||"")===teren);
       if(dan) list = list.filter(x=>dayKey(x.vreme)===dan);
       if(faza) list = list.filter(x=>(x.faza||"")===faza);
+
+      const tbod = el("tbodyRaspored");
+      // mobile cards
+      renderRasporedMobile(list);
 
       const tbod = el("tbodyRaspored");
       if(!list.length){
@@ -935,6 +1030,7 @@
 
       if(!q){
         tb.innerHTML = `<tr><td colspan="8" class="muted">Ukucaj tim gore (npr. Dadeks) da vidiš sve utakmice tog tima.</td></tr>`;
+        renderSearchMobile([]);
         return;
       }
 
@@ -975,6 +1071,7 @@
 
     function renderAll(){
       renderLockInfo();
+      renderKPI();
       renderLive();
       renderRaspored();
       renderGrupe();
@@ -1027,12 +1124,25 @@
 
       if(error){
         setConn("bad");
+        const cached = readCache();
+        if(cached){
+          ALL = cached.data || [];
+          el("lastUpdate").textContent = "Offline cache: " + new Date(cached.ts).toLocaleString("sr-ME");
+          buildGenBar();
+          fillSelectsFromActive();
+          renderAll();
+          renderGlobalSearch();
+          showToast("Radim offline (cache) ⚡");
+          return;
+        }
+
         el("tbodyLive").innerHTML = `<tr><td colspan="8" style="color:#ff4d6d;font-weight:800">Greška SELECT: ${error.message}</td></tr>`;
         return;
       }
 
       setConn("ok");
       ALL = data || [];
+      saveCache();
       el("lastUpdate").textContent = "Ažurirano: " + new Date().toLocaleString("sr-ME");
 
       applyQS();
@@ -1055,6 +1165,142 @@
       .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, scheduleReload)
       .subscribe();
 
+
+    // ===== UX helpers (toast) =====
+    function showToast(msg){
+      const t = el("toast");
+      if(!t) return;
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(showToast._tm);
+      showToast._tm = setTimeout(()=>t.classList.remove("show"), 2200);
+    }
+
+    // ===== KPI =====
+    function renderKPI(){
+      const list = activeList();
+      const total = list.length;
+      const live = list.filter(x => (x.status||"")==="uzivo").length;
+      const done = list.filter(x => (x.status||"")==="gotovo").length;
+      if(el("kpiTotal")) el("kpiTotal").textContent = total;
+      if(el("kpiLive")) el("kpiLive").textContent = live;
+      if(el("kpiDone")) el("kpiDone").textContent = done;
+    }
+
+    // ===== Mobile cards =====
+    function cardHTML(r, opts){
+      const when = fmtTime(r.vreme);
+      const teren = r.teren ?? "—";
+      const grupa = r.grupa ? `Grupa ${r.grupa}` : "";
+      const faza = r.faza ?? "";
+      const score = `<span class="mScore">${(r.gol_domacin ?? 0)} : ${(r.gol_gost ?? 0)}</span>`;
+      return `
+        <div class="mCard">
+          <div class="mTop">
+            <div class="small muted">${when} • ${teren}</div>
+            <div>${tagStatus(r.status)}</div>
+          </div>
+          <div class="mTeams">${r.domacin ?? ""} <span class="muted">vs</span> ${r.gost ?? ""}</div>
+          <div class="mMeta">
+            <span class="tag">${faza}</span>
+            ${grupa ? `<span class="tag">${grupa}</span>` : ``}
+            ${opts && opts.showGodiste ? `<span class="tag">${r.godiste ?? ""}</span>` : ``}
+            ${opts && opts.showScore ? `<span class="tag">${score}</span>` : ``}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLiveMobile(list){
+      const wrap = el("mobile_tbodyLive");
+      if(!wrap) return;
+      if(!list.length){
+        wrap.innerHTML = `<div class="muted">Nema utakmica za filter.</div>`;
+        return;
+      }
+      wrap.innerHTML = list.map(r => cardHTML(r, {showGodiste:true, showScore:true})).join("");
+    }
+
+    function renderRasporedMobile(list){
+      const wrap = el("mobile_tbodyRaspored");
+      if(!wrap) return;
+      if(!list.length){
+        wrap.innerHTML = `<div class="muted">Nema utakmica u rasporedu za filter.</div>`;
+        return;
+      }
+      wrap.innerHTML = list.map(r => cardHTML(r, {showGodiste:false, showScore:false})).join("");
+    }
+
+    function renderSearchMobile(list){
+      const wrap = el("mobile_tbodySearch");
+      if(!wrap) return;
+      if(!el("globalSearch").value.trim()){
+        wrap.innerHTML = `<div class="muted">Ukucaj tim gore (npr. Dadeks) da vidiš sve utakmice tog tima.</div>`;
+        return;
+      }
+      if(!list.length){
+        wrap.innerHTML = `<div class="muted">Nema utakmica za “${el("globalSearch").value}” u godištu ${activeGodiste}.</div>`;
+        return;
+      }
+      wrap.innerHTML = list.map(r => cardHTML(r, {showGodiste:true, showScore:true})).join("");
+    }
+
+    // ===== Share =====
+    async function doShare(){
+      const url = location.href;
+      const title = document.title;
+      try{
+        if(navigator.share){
+          await navigator.share({ title, text:"Raspored i rezultati turnira", url });
+          return;
+        }
+      }catch(e){}
+      try{
+        await navigator.clipboard.writeText(url);
+        showToast("Link kopiran ✅");
+      }catch(e){
+        prompt("Kopiraj link:", url);
+      }
+    }
+
+    // ===== Install (PWA) =====
+    let deferredPrompt = null;
+    window.addEventListener("beforeinstallprompt", (e)=>{
+      e.preventDefault();
+      deferredPrompt = e;
+      const b = el("btnInstall");
+      if(b) b.style.display = "inline-flex";
+    });
+    el("btnInstall")?.addEventListener("click", async ()=>{
+      if(!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice.catch(()=>{});
+      deferredPrompt = null;
+      const b = el("btnInstall");
+      if(b) b.style.display = "none";
+    });
+
+    el("btnShare")?.addEventListener("click", doShare);
+
+    // ===== Scroll to top =====
+    el("btnTop")?.addEventListener("click", ()=> window.scrollTo({top:0, behavior:"smooth"}));
+
+    // ===== Offline cache for matches =====
+    function saveCache(){
+      try{
+        localStorage.setItem("matches_cache_v1", JSON.stringify({ts:Date.now(), data:ALL}));
+      }catch(e){}
+    }
+    function readCache(){
+      try{
+        const raw = localStorage.getItem("matches_cache_v1");
+        if(!raw) return null;
+        const obj = JSON.parse(raw);
+        return obj && obj.data ? obj : null;
+      }catch(e){ return null; }
+    }
+
+
     load();
 
     // PWA
@@ -1065,5 +1311,11 @@
     }
   </script>
   <div class="toast" id="toast"></div>
+
+  <div class="toast" id="toast"></div>
+  <button class="fab" id="btnTop" title="Na vrh">
+    <span class="fabRow">⬆️ <span class="small" style="color:rgba(233,238,252,.85)">Vrh</span></span>
+  </button>
+
 </body>
 </html>
