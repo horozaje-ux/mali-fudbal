@@ -743,19 +743,6 @@
         const tb = b.vreme ? new Date(b.vreme).getTime() : 0;
         return ta - tb;
       });
-const sb = (b.status||"");
-        const ra = (sa==="uzivo")?0:(sa==="ceka")?1:2;
-        const rb = (sb==="uzivo")?0:(sb==="ceka")?1:2;
-        if(ra!==rb) return ra-rb;
-
-        const fa = isFavMatch(a) ? 0 : 1;
-        const fb = isFavMatch(b) ? 0 : 1;
-        if(fa!==fb) return fa-fb;
-
-        const ta = a.vreme ? new Date(a.vreme).getTime() : 0;
-        const tb = b.vreme ? new Date(b.vreme).getTime() : 0;
-        return ta - tb;
-      });
 
 
       const tb = el("tbodyLive");
