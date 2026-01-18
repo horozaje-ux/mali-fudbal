@@ -202,6 +202,23 @@
       outline:2px solid rgba(255,204,102,.35);
       box-shadow:0 0 0 6px rgba(255,204,102,.08);
     }
+    .favList{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;width:100%}
+    .favChip{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      font-size:13px;
+      transition:.15s transform,.15s background,.15s border;
+    }
+    .favChip:hover{transform:translateY(-1px);background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.20)}
+    @media (max-width:620px){
+      .favChip{padding:12px 14px;font-size:14px}
+    }
+
 
   </style>
 </head>
@@ -464,24 +481,92 @@
         .trim();
     }
 
-    
+    // ===== Omiljeni timovi (localStorage) =====
+    const FAV_KEY = "favTeams";
+    let favoriteTeams = [];
+    try{
+      favoriteTeams = JSON.parse(localStorage.getItem(FAV_KEY) || "[]");
+      if(!Array.isArray(favoriteTeams)) favoriteTeams = [];
+    }catch(e){ favoriteTeams = []; }
 
-    // ===== Omiljeni tim (localStorage) =====
-    let favoriteTeam = localStorage.getItem("favTeam") || "";
-    function setFavoriteTeam(name){
-      favoriteTeam = (name || "").trim();
-      if(favoriteTeam) localStorage.setItem("favTeam", favoriteTeam);
-      else localStorage.removeItem("favTeam");
-      const favName = el("favName");
-      if(favName) favName.textContent = favoriteTeam ? favoriteTeam : "—";
+    function saveFavs(){
+      localStorage.setItem(FAV_KEY, JSON.stringify(favoriteTeams));
+      renderFavsUI();
     }
+
+    function normTeam(s){ return normalize(String(s||"")); }
+
+    function addFavoriteTeam(name){
+      const v = String(name||"").trim();
+      if(!v) return;
+      const nv = normTeam(v);
+      if(!nv) return;
+      // prevent duplicates by normalized compare
+      const exists = favoriteTeams.some(t => normTeam(t) === nv);
+      if(exists) return;
+      favoriteTeams.unshift(v);
+      // cap to 8 (enough)
+      favoriteTeams = favoriteTeams.slice(0, 8);
+      saveFavs();
+      renderAll();
+      renderGlobalSearch();
+    }
+
+    function removeFavoriteTeam(name){
+      const nv = normTeam(name);
+      favoriteTeams = favoriteTeams.filter(t => normTeam(t) !== nv);
+      saveFavs();
+      renderAll();
+      renderGlobalSearch();
+    }
+
+    function clearFavorites(){
+      favoriteTeams = [];
+      saveFavs();
+      renderAll();
+      renderGlobalSearch();
+    }
+
     function isFavMatch(m){
-      const f = normalize(favoriteTeam);
-      if(!f) return false;
-      return normalize(m.domacin).includes(f) || normalize(m.gost).includes(f);
+      if(!favoriteTeams.length) return false;
+      const a = normTeam(m.domacin);
+      const b = normTeam(m.gost);
+      return favoriteTeams.some(t=>{
+        const nt = normTeam(t);
+        return nt && (a.includes(nt) || b.includes(nt));
+      });
+    }
+
+    function renderFavsUI(){
+      const wrap = el("favList");
+      const pill = el("favPill");
+      const label = el("favName");
+      if(label) label.textContent = favoriteTeams.length ? `${favoriteTeams.length} tima` : "—";
+      if(!wrap) return;
+
+      if(!favoriteTeams.length){
+        wrap.innerHTML = `<span class="small muted">Nema omiljenih. Upisi tim u pretragu pa klikni ⭐ Dodaj.</span>`;
+        return;
+      }
+
+      wrap.innerHTML = favoriteTeams.map(t=>`
+        <button class="favChip" data-team="${t}" title="Klikni da ukloniš">⭐ ${t} ✖</button>
+      `).join("");
+
+      wrap.querySelectorAll(".favChip").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          const t = b.getAttribute("data-team") || "";
+          removeFavoriteTeam(t);
+        });
+      });
+
+      if(pill){
+        pill.title = "Klikni da obrišeš sve omiljene";
+      }
     }
 
     // Generacije bar
+
     function buildGenBar(){
       const bar = el("genBar");
       bar.innerHTML = GODISTA.map(g => `
