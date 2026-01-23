@@ -57,7 +57,8 @@
     <div id="msg" style="margin-top:10px" class="small"></div>
 
     <div class="hint small">
-      Ako si “Ulogovan ✅” a ne možeš dodavati/mijenjati — provjeri RLS policies (INSERT/UPDATE) i uradi refresh sa <b>?nocache=1</b>.
+      Ako si “Ulogovan ✅” a ne možeš dodavati/mijenjati — provjeri RLS policies (INSERT/UPDATE) i uradi refresh sa <b>?nocache=1</b>.<br/>
+      Ako koristiš Edge i piše “Tracking prevention blocked storage” → otvori u Chrome/Incognito ili dozvoli cookies/site data.
     </div>
   </div>
 
@@ -212,50 +213,63 @@
   }
 
   async function refreshAuthUI(){
-    const { data } = await sb.auth.getSession();
-    const logged = !!data.session;
-    el("statusPill").textContent = logged ? "Ulogovan ✅" : "Nisi ulogovan";
-    setAddEnabled(logged);
+    try{
+      const { data, error } = await sb.auth.getSession();
+      if(error) throw error;
+      const logged = !!data.session;
+      el("statusPill").textContent = logged ? "Ulogovan ✅" : "Nisi ulogovan";
+      setAddEnabled(logged);
+    }catch(e){
+      console.error(e);
+      el("statusPill").textContent = "Nisi ulogovan";
+      setAddEnabled(false);
+    }
   }
 
-  async function saveRow(tr){
-  const id = tr.getAttribute("data-id");
+  async function loadMatches(){
+    const { data, error } = await sb
+      .from("matches")
+      .select("*")
+      .order("vreme", { ascending:true })
+      .order("created_at", { ascending:true });
 
-  const gol_domacin_raw = tr.querySelector('[data-k="gol_domacin"]').value;
-  const gol_gost_raw    = tr.querySelector('[data-k="gol_gost"]').value;
+    const tb = el("tbody");
+    if(error){
+      tb.innerHTML = `<tr><td colspan="10" class="err">Greška SELECT: ${error.message}</td></tr>`;
+      return;
+    }
+    if(!data || data.length === 0){
+      tb.innerHTML = `<tr><td colspan="10" class="muted">Nema unosa još. Dodaj prvi meč gore ⬆️</td></tr>`;
+      return;
+    }
 
-  const gol_domacin = gol_domacin_raw === "" ? null : parseInt(gol_domacin_raw, 10);
-  const gol_gost    = gol_gost_raw === "" ? null : parseInt(gol_gost_raw, 10);
-
-  const status   = tr.querySelector('[data-k="status"]').value;
-  const teren    = tr.querySelector('[data-k="teren"]').value.trim() || null;
-  const napomena = tr.querySelector('[data-k="napomena"]').value.trim() || null;
-  const vreme    = fromDateTimeLocalInput(tr.querySelector('[data-k="vreme"]').value);
-
-  console.log("SAVE id:", id, { gol_domacin, gol_gost, status, teren, vreme, napomena });
-
-  const { data: updated, error } = await sb
-    .from("matches")
-    .update({ gol_domacin, gol_gost, status, teren, vreme, napomena })
-    .eq("id", id)
-    .select("id, gol_domacin, gol_gost, status")
-    .single();
-
-  if(error){
-    msg("UPDATE greška: " + error.message, false);
-    console.error(error);
-    return;
-  }
-
-  if(!updated){
-    msg("UPDATE nije promijenio nijedan red (ID ili RLS).", false);
-    return;
-  }
-
-  msg(`Update ✅ (DB: ${updated.gol_domacin}:${updated.gol_gost}, ${updated.status})`);
-  await loadMatches();
-}
-
+    tb.innerHTML = data.map(r => `
+      <tr data-id="${r.id}">
+        <td class="nowrap">
+          <div class="mini muted">${fmtTime(r.vreme)}</div>
+          <input type="datetime-local" data-k="vreme" value="${toDateTimeLocalValue(r.vreme)}">
+        </td>
+        <td><input data-k="teren" value="${(r.teren ?? "")}" placeholder="Teren 1"></td>
+        <td class="nowrap">${r.godiste ?? ""}</td>
+        <td class="nowrap">${r.grupa ?? ""}</td>
+        <td class="nowrap">${r.faza ?? ""}</td>
+        <td>${r.domacin ?? ""} <span class="muted">vs</span> ${r.gost ?? ""}</td>
+        <td class="nowrap">
+          <input style="width:72px;display:inline-block" type="number" min="0" value="${r.gol_domacin ?? 0}" data-k="gol_domacin">
+          :
+          <input style="width:72px;display:inline-block" type="number" min="0" value="${r.gol_gost ?? 0}" data-k="gol_gost">
+        </td>
+        <td>
+          <select data-k="status" style="width:130px">
+            ${["ceka","uzivo","gotovo"].map(s => `<option value="${s}" ${r.status===s?"selected":""}>${s}</option>`).join("")}
+          </select>
+        </td>
+        <td><input data-k="napomena" value="${(r.napomena ?? "")}" placeholder="npr. derbi / kolo"></td>
+        <td class="nowrap">
+          <button class="btnMini" data-action="save">Sačuvaj</button>
+        </td>
+      </tr>
+    `).join("");
   }
 
   async function addMatch(){
@@ -284,36 +298,61 @@
     await loadMatches();
   }
 
+  // ✅ JEDINA saveRow funkcija (debug + select)
   async function saveRow(tr){
     const id = tr.getAttribute("data-id");
-    const gol_domacin = Number(tr.querySelector('[data-k="gol_domacin"]').value);
-    const gol_gost = Number(tr.querySelector('[data-k="gol_gost"]').value);
-    const status = tr.querySelector('[data-k="status"]').value;
-    const teren = tr.querySelector('[data-k="teren"]').value.trim() || null;
-    const napomena = tr.querySelector('[data-k="napomena"]').value.trim() || null;
-    const vreme = fromDateTimeLocalInput(tr.querySelector('[data-k="vreme"]').value);
 
-    const { error } = await sb
+    const gol_domacin_raw = tr.querySelector('[data-k="gol_domacin"]').value;
+    const gol_gost_raw    = tr.querySelector('[data-k="gol_gost"]').value;
+
+    const gol_domacin = gol_domacin_raw === "" ? null : parseInt(gol_domacin_raw, 10);
+    const gol_gost    = gol_gost_raw === "" ? null : parseInt(gol_gost_raw, 10);
+
+    const status   = tr.querySelector('[data-k="status"]').value;
+    const teren    = tr.querySelector('[data-k="teren"]').value.trim() || null;
+    const napomena = tr.querySelector('[data-k="napomena"]').value.trim() || null;
+    const vreme    = fromDateTimeLocalInput(tr.querySelector('[data-k="vreme"]').value);
+
+    console.log("SAVE id:", id, { gol_domacin, gol_gost, status, teren, vreme, napomena });
+
+    const { data: updated, error } = await sb
       .from("matches")
       .update({ gol_domacin, gol_gost, status, teren, vreme, napomena })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id, gol_domacin, gol_gost, status")
+      .single();
 
-    if(error){ msg("UPDATE greška: " + error.message, false); return; }
-    msg("Update ✅");
+    if(error){
+      msg("UPDATE greška: " + error.message, false);
+      console.error(error);
+      return;
+    }
+
+    if(!updated){
+      msg("UPDATE nije promijenio nijedan red (ID ili RLS).", false);
+      return;
+    }
+
+    msg(`Update ✅ (DB: ${updated.gol_domacin}:${updated.gol_gost}, ${updated.status})`);
     await loadMatches();
   }
 
   el("btnLogin").addEventListener("click", async () => {
-    const { error } = await sb.auth.signInWithPassword({ email: el("email").value.trim(), password: el("password").value });
+    const { error } = await sb.auth.signInWithPassword({
+      email: el("email").value.trim(),
+      password: el("password").value
+    });
     if(error){ msg("Login greška: " + error.message, false); return; }
     msg("Ulogovan ✅");
-    await refreshAuthUI(); await loadMatches();
+    await refreshAuthUI();
+    await loadMatches();
   });
 
   el("btnLogout").addEventListener("click", async () => {
     await sb.auth.signOut();
     msg("Izlogovan.");
-    await refreshAuthUI(); await loadMatches();
+    await refreshAuthUI();
+    await loadMatches();
   });
 
   el("btnAdd").addEventListener("click", addMatch);
@@ -328,6 +367,7 @@
     .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => loadMatches())
     .subscribe();
 
+  // start
   refreshAuthUI();
   loadMatches();
 </script>
