@@ -57,8 +57,7 @@
     <div id="msg" style="margin-top:10px" class="small"></div>
 
     <div class="hint small">
-      Ako si “Ulogovan ✅” a ne možeš dodavati/mijenjati — provjeri RLS policies (INSERT/UPDATE) i uradi refresh sa <b>?nocache=1</b>.<br/>
-      Ako koristiš Edge i piše “Tracking prevention blocked storage” → otvori u Chrome/Incognito ili dozvoli cookies/site data.
+      Ako u Edge-u vidiš “Tracking prevention blocked storage” → otvori u Chrome ili dozvoli cookies/site data za supabase + tvoj sajt.
     </div>
   </div>
 
@@ -143,7 +142,7 @@
   <div class="card">
     <div class="top">
       <h3 style="margin:0">Utakmice</h3>
-      <div class="small muted">mijenjaš u redu pa klik “Sačuvaj” (UPDATE)</div>
+      <div class="small muted">mijenjaš u redu pa klik “Sačuvaj”</div>
     </div>
     <div style="overflow:auto;margin-top:10px">
       <table>
@@ -167,10 +166,6 @@
       </table>
     </div>
   </div>
-
-  <div class="small muted" style="text-align:center;margin:18px 0">
-    Tip: na telefonu “Add to Home Screen” za brzi admin.
-  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -179,7 +174,9 @@
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
   const GODISTA = ["2015","2016","2017","2018"];
 
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+  });
 
   const el = (id) => document.getElementById(id);
   const msg = (t, ok=true) => { el("msg").innerHTML = ok ? `<span class="ok">${t}</span>` : `<span class="err">${t}</span>`; };
@@ -189,8 +186,10 @@
     addCard.querySelectorAll("input,select,button,textarea").forEach(x => x.disabled = !enabled);
     el("addHint").innerHTML = enabled
       ? `<span class="ok">Možeš dodavati i mijenjati utakmice ✅</span>`
-      : `<span class="muted">Prvo se uloguj da bi dodavao (INSERT/UPDATE policy).</span>`;
+      : `<span class="muted">Prvo se uloguj.</span>`;
   }
+
+  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
 
   function fmtTime(v){
     if(!v) return "—";
@@ -217,10 +216,10 @@
       const { data, error } = await sb.auth.getSession();
       if(error) throw error;
       const logged = !!data.session;
-      el("statusPill").textContent = logged ? "Ulogovan ✅" : "Nisi ulogovan";
+      el("statusPill").textContent = logged ? ("Ulogovan ✅ " + (data.session.user?.email||"")) : "Nisi ulogovan";
       setAddEnabled(logged);
     }catch(e){
-      console.error(e);
+      console.error("getSession error:", e);
       el("statusPill").textContent = "Nisi ulogovan";
       setAddEnabled(false);
     }
@@ -239,7 +238,7 @@
       return;
     }
     if(!data || data.length === 0){
-      tb.innerHTML = `<tr><td colspan="10" class="muted">Nema unosa još. Dodaj prvi meč gore ⬆️</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="10" class="muted">Nema unosa još.</td></tr>`;
       return;
     }
 
@@ -264,7 +263,7 @@
             ${["ceka","uzivo","gotovo"].map(s => `<option value="${s}" ${r.status===s?"selected":""}>${s}</option>`).join("")}
           </select>
         </td>
-        <td><input data-k="napomena" value="${(r.napomena ?? "")}" placeholder="npr. derbi / kolo"></td>
+        <td><input data-k="napomena" value="${(r.napomena ?? "")}" placeholder="npr. derbi"></td>
         <td class="nowrap">
           <button class="btnMini" data-action="save">Sačuvaj</button>
         </td>
@@ -298,9 +297,10 @@
     await loadMatches();
   }
 
-  // ✅ JEDINA saveRow funkcija (debug + select)
+  // ✅ JEDINA saveRow funkcija — update + odmah fetch iz baze
   async function saveRow(tr){
     const id = tr.getAttribute("data-id");
+    if(!id){ msg("Greška: nema ID reda.", false); return; }
 
     const gol_domacin_raw = tr.querySelector('[data-k="gol_domacin"]').value;
     const gol_gost_raw    = tr.querySelector('[data-k="gol_gost"]').value;
@@ -313,27 +313,39 @@
     const napomena = tr.querySelector('[data-k="napomena"]').value.trim() || null;
     const vreme    = fromDateTimeLocalInput(tr.querySelector('[data-k="vreme"]').value);
 
-    console.log("SAVE id:", id, { gol_domacin, gol_gost, status, teren, vreme, napomena });
+    console.log("UPDATE TRY:", id, { gol_domacin, gol_gost, status, teren, vreme, napomena });
 
-    const { data: updated, error } = await sb
+    // 1) update
+    const { error: upErr } = await sb
       .from("matches")
       .update({ gol_domacin, gol_gost, status, teren, vreme, napomena })
-      .eq("id", id)
+      .eq("id", id);
+
+    if(upErr){
+      msg("UPDATE greška: " + upErr.message, false);
+      console.error("UPDATE ERROR:", upErr);
+      return;
+    }
+
+    // 2) mali delay (da ne uhvatiš stari snapshot)
+    await sleep(250);
+
+    // 3) fetch baš tog reda iz baze (dokaz)
+    const { data: fresh, error: selErr } = await sb
+      .from("matches")
       .select("id, gol_domacin, gol_gost, status")
+      .eq("id", id)
       .single();
 
-    if(error){
-      msg("UPDATE greška: " + error.message, false);
-      console.error(error);
+    if(selErr){
+      msg("SELECT nakon update greška: " + selErr.message, false);
+      console.error("SELECT AFTER UPDATE ERROR:", selErr);
       return;
     }
 
-    if(!updated){
-      msg("UPDATE nije promijenio nijedan red (ID ili RLS).", false);
-      return;
-    }
+    console.log("DB AFTER UPDATE:", fresh);
+    msg(`Update ✅ (DB: ${fresh.gol_domacin}:${fresh.gol_gost}, ${fresh.status})`);
 
-    msg(`Update ✅ (DB: ${updated.gol_domacin}:${updated.gol_gost}, ${updated.status})`);
     await loadMatches();
   }
 
@@ -363,11 +375,12 @@
     saveRow(btn.closest("tr"));
   });
 
-  sb.channel("matches-realtime-admin")
-    .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => loadMatches())
-    .subscribe();
+  // ⚠️ Real-time može da pravi konfuziju dok debugujemo — za sad isključen.
+  // Kad proradi 100%, vratićemo ga.
+  // sb.channel("matches-realtime-admin")
+  //   .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => loadMatches())
+  //   .subscribe();
 
-  // start
   refreshAuthUI();
   loadMatches();
 </script>
