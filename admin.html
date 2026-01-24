@@ -29,6 +29,7 @@
     .nowrap{white-space:nowrap}
     .mini{font-size:12px}
     .btnMini{padding:8px 10px;border-radius:10px}
+    .saving{opacity:.7; pointer-events:none;}
   </style>
 </head>
 <body>
@@ -54,10 +55,12 @@
       <button id="btnLogin">Uloguj se</button>
       <button id="btnLogout" class="secondary">Logout</button>
     </div>
+
     <div id="msg" style="margin-top:10px" class="small"></div>
 
     <div class="hint small">
-      Ako u Edge-u vidiš “Tracking prevention blocked storage” → otvori u Chrome ili dozvoli cookies/site data za supabase + tvoj sajt.
+      <b>Ako update “vrati” rezultat</b> → znači UPDATE nije prošao u bazi (RLS ili session).<br/>
+      Otvori stranicu sa <b>?nocache=1</b> i pogledaj Console (F12) – ovaj fajl sada ispisuje tačno sve.
     </div>
   </div>
 
@@ -142,7 +145,7 @@
   <div class="card">
     <div class="top">
       <h3 style="margin:0">Utakmice</h3>
-      <div class="small muted">mijenjaš u redu pa klik “Sačuvaj”</div>
+      <div class="small muted">mijenjaš u redu pa klik “Sačuvaj” (UPDATE)</div>
     </div>
     <div style="overflow:auto;margin-top:10px">
       <table>
@@ -166,6 +169,10 @@
       </table>
     </div>
   </div>
+
+  <div class="small muted" style="text-align:center;margin:18px 0">
+    Tip: na telefonu “Add to Home Screen” za brzi admin.
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -174,22 +181,21 @@
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_DZJST_2cQWJU89oXbyMipg_0O-dmc-l";
   const GODISTA = ["2015","2016","2017","2018"];
 
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
-  });
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
   const el = (id) => document.getElementById(id);
-  const msg = (t, ok=true) => { el("msg").innerHTML = ok ? `<span class="ok">${t}</span>` : `<span class="err">${t}</span>`; };
+
+  function msg(text, ok=true){
+    el("msg").innerHTML = ok ? `<span class="ok">${text}</span>` : `<span class="err">${text}</span>`;
+  }
 
   function setAddEnabled(enabled){
     const addCard = el("addCard");
     addCard.querySelectorAll("input,select,button,textarea").forEach(x => x.disabled = !enabled);
     el("addHint").innerHTML = enabled
       ? `<span class="ok">Možeš dodavati i mijenjati utakmice ✅</span>`
-      : `<span class="muted">Prvo se uloguj.</span>`;
+      : `<span class="muted">Prvo se uloguj da bi dodavao (INSERT/UPDATE policy).</span>`;
   }
-
-  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
 
   function fmtTime(v){
     if(!v) return "—";
@@ -197,6 +203,7 @@
     if(isNaN(d)) return String(v);
     return d.toLocaleString("sr-ME",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
   }
+
   function toDateTimeLocalValue(v){
     if(!v) return "";
     const d = new Date(v);
@@ -204,6 +211,7 @@
     const pad = (n)=>String(n).padStart(2,"0");
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
+
   function fromDateTimeLocalInput(val){
     if(!val) return null;
     const d = new Date(val);
@@ -211,34 +219,44 @@
     return d.toISOString();
   }
 
-  async function refreshAuthUI(){
+  async function getSessionOrNull(){
     try{
       const { data, error } = await sb.auth.getSession();
       if(error) throw error;
-      const logged = !!data.session;
-      el("statusPill").textContent = logged ? ("Ulogovan ✅ " + (data.session.user?.email||"")) : "Nisi ulogovan";
-      setAddEnabled(logged);
+      return data.session || null;
     }catch(e){
       console.error("getSession error:", e);
-      el("statusPill").textContent = "Nisi ulogovan";
-      setAddEnabled(false);
+      return null;
     }
   }
 
+  async function refreshAuthUI(){
+    const session = await getSessionOrNull();
+    const logged = !!session;
+    el("statusPill").textContent = logged ? "Ulogovan ✅" : "Nisi ulogovan";
+    setAddEnabled(logged);
+
+    console.log("AUTH session:", session ? { user: session.user?.id, email: session.user?.email } : null);
+  }
+
   async function loadMatches(){
+    const tb = el("tbody");
+    tb.innerHTML = `<tr><td colspan="10" class="muted">Učitavam…</td></tr>`;
+
     const { data, error } = await sb
       .from("matches")
       .select("*")
       .order("vreme", { ascending:true })
       .order("created_at", { ascending:true });
 
-    const tb = el("tbody");
     if(error){
       tb.innerHTML = `<tr><td colspan="10" class="err">Greška SELECT: ${error.message}</td></tr>`;
+      console.error("SELECT error:", error);
       return;
     }
+
     if(!data || data.length === 0){
-      tb.innerHTML = `<tr><td colspan="10" class="muted">Nema unosa još.</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="10" class="muted">Nema unosa još. Dodaj prvi meč gore ⬆️</td></tr>`;
       return;
     }
 
@@ -263,7 +281,7 @@
             ${["ceka","uzivo","gotovo"].map(s => `<option value="${s}" ${r.status===s?"selected":""}>${s}</option>`).join("")}
           </select>
         </td>
-        <td><input data-k="napomena" value="${(r.napomena ?? "")}" placeholder="npr. derbi"></td>
+        <td><input data-k="napomena" value="${(r.napomena ?? "")}" placeholder="npr. derbi / kolo"></td>
         <td class="nowrap">
           <button class="btnMini" data-action="save">Sačuvaj</button>
         </td>
@@ -272,6 +290,12 @@
   }
 
   async function addMatch(){
+    const session = await getSessionOrNull();
+    if(!session){
+      msg("Nisi ulogovan (nema session). Login pa probaj opet.", false);
+      return;
+    }
+
     const godiste = el("godiste").value;
     if(!GODISTA.includes(String(godiste))) { msg("Godište mora biti 2015–2018.", false); return; }
 
@@ -289,72 +313,108 @@
       napomena: el("napomena").value.trim() || null
     };
 
-    const { error } = await sb.from("matches").insert(payload);
-    if(error){ msg("INSERT greška: " + error.message, false); return; }
+    console.log("INSERT payload:", payload);
 
-    msg("Sačuvano ✅");
+    const { data: inserted, error } = await sb
+      .from("matches")
+      .insert(payload)
+      .select("id")
+      .single();
+
+    if(error){
+      msg("INSERT greška: " + error.message, false);
+      console.error("INSERT error:", error);
+      return;
+    }
+
+    msg("Sačuvano ✅ (ID: " + inserted.id + ")");
     ["domacin","gost","gol_domacin","gol_gost","napomena"].forEach(x => el(x).value = "");
     await loadMatches();
   }
 
-  // ✅ JEDINA saveRow funkcija — update + odmah fetch iz baze
   async function saveRow(tr){
-    const id = tr.getAttribute("data-id");
-    if(!id){ msg("Greška: nema ID reda.", false); return; }
+    tr.classList.add("saving");
 
-    const gol_domacin_raw = tr.querySelector('[data-k="gol_domacin"]').value;
-    const gol_gost_raw    = tr.querySelector('[data-k="gol_gost"]').value;
+    try{
+      const session = await getSessionOrNull();
+      if(!session){
+        msg("Nisi ulogovan (session = null). Ne može UPDATE.", false);
+        console.error("UPDATE blocked: no session");
+        return;
+      }
 
-    const gol_domacin = gol_domacin_raw === "" ? null : parseInt(gol_domacin_raw, 10);
-    const gol_gost    = gol_gost_raw === "" ? null : parseInt(gol_gost_raw, 10);
+      const id = tr.getAttribute("data-id");
 
-    const status   = tr.querySelector('[data-k="status"]').value;
-    const teren    = tr.querySelector('[data-k="teren"]').value.trim() || null;
-    const napomena = tr.querySelector('[data-k="napomena"]').value.trim() || null;
-    const vreme    = fromDateTimeLocalInput(tr.querySelector('[data-k="vreme"]').value);
+      const gol_domacin_raw = tr.querySelector('[data-k="gol_domacin"]').value;
+      const gol_gost_raw    = tr.querySelector('[data-k="gol_gost"]').value;
 
-    console.log("UPDATE TRY:", id, { gol_domacin, gol_gost, status, teren, vreme, napomena });
+      const gol_domacin = gol_domacin_raw === "" ? null : parseInt(gol_domacin_raw, 10);
+      const gol_gost    = gol_gost_raw === "" ? null : parseInt(gol_gost_raw, 10);
 
-    // 1) update
-    const { error: upErr } = await sb
-      .from("matches")
-      .update({ gol_domacin, gol_gost, status, teren, vreme, napomena })
-      .eq("id", id);
+      const status   = tr.querySelector('[data-k="status"]').value;
+      const teren    = tr.querySelector('[data-k="teren"]').value.trim() || null;
+      const napomena = tr.querySelector('[data-k="napomena"]').value.trim() || null;
+      const vreme    = fromDateTimeLocalInput(tr.querySelector('[data-k="vreme"]').value);
 
-    if(upErr){
-      msg("UPDATE greška: " + upErr.message, false);
-      console.error("UPDATE ERROR:", upErr);
-      return;
+      const payload = { gol_domacin, gol_gost, status, teren, vreme, napomena };
+
+      console.log("UPDATE try:", { id, payload, user: session.user?.id, email: session.user?.email });
+
+      // 1) UPDATE
+      const { data: updated, error: upErr } = await sb
+        .from("matches")
+        .update(payload)
+        .eq("id", id)
+        .select("id, gol_domacin, gol_gost, status, teren, vreme, napomena")
+        .maybeSingle();
+
+      if(upErr){
+        msg("UPDATE greška: " + upErr.message, false);
+        console.error("UPDATE error:", upErr);
+        return;
+      }
+
+      if(!updated){
+        msg("UPDATE nije promijenio red. (RLS policy ili ID mismatch)", false);
+        console.error("UPDATE returned null row. Check RLS / id.");
+        return;
+      }
+
+      // 2) HARD VERIFY (čitamo iz baze opet taj ID)
+      const { data: verify, error: verErr } = await sb
+        .from("matches")
+        .select("id, gol_domacin, gol_gost, status")
+        .eq("id", id)
+        .single();
+
+      if(verErr){
+        msg("Update ✅ ali verify SELECT greška: " + verErr.message, false);
+        console.error("VERIFY error:", verErr);
+        return;
+      }
+
+      msg(`Update ✅ (Baza: ${verify.gol_domacin}:${verify.gol_gost}, ${verify.status})`);
+      console.log("UPDATE OK / VERIFY:", verify);
+
+      await loadMatches(); // sad refresh tek kad znamo da je DB stvarno promijenjen
+    } finally {
+      tr.classList.remove("saving");
     }
-
-    // 2) mali delay (da ne uhvatiš stari snapshot)
-    await sleep(250);
-
-    // 3) fetch baš tog reda iz baze (dokaz)
-    const { data: fresh, error: selErr } = await sb
-      .from("matches")
-      .select("id, gol_domacin, gol_gost, status")
-      .eq("id", id)
-      .single();
-
-    if(selErr){
-      msg("SELECT nakon update greška: " + selErr.message, false);
-      console.error("SELECT AFTER UPDATE ERROR:", selErr);
-      return;
-    }
-
-    console.log("DB AFTER UPDATE:", fresh);
-    msg(`Update ✅ (DB: ${fresh.gol_domacin}:${fresh.gol_gost}, ${fresh.status})`);
-
-    await loadMatches();
   }
 
   el("btnLogin").addEventListener("click", async () => {
-    const { error } = await sb.auth.signInWithPassword({
-      email: el("email").value.trim(),
-      password: el("password").value
-    });
-    if(error){ msg("Login greška: " + error.message, false); return; }
+    const email = el("email").value.trim();
+    const password = el("password").value;
+
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+    if(error){
+      msg("Login greška: " + error.message, false);
+      console.error("LOGIN error:", error);
+      return;
+    }
+
+    console.log("LOGIN OK:", data);
     msg("Ulogovan ✅");
     await refreshAuthUI();
     await loadMatches();
@@ -372,15 +432,11 @@
   document.addEventListener("click", (e) => {
     const btn = e.target.closest('button[data-action="save"]');
     if(!btn) return;
-    saveRow(btn.closest("tr"));
+    const tr = btn.closest("tr");
+    saveRow(tr);
   });
 
-  // ⚠️ Real-time može da pravi konfuziju dok debugujemo — za sad isključen.
-  // Kad proradi 100%, vratićemo ga.
-  // sb.channel("matches-realtime-admin")
-  //   .on("postgres_changes", { event:"*", schema:"public", table:"matches" }, () => loadMatches())
-  //   .subscribe();
-
+  // START
   refreshAuthUI();
   loadMatches();
 </script>
